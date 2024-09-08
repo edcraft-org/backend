@@ -61,7 +61,7 @@ def add_existing_question_to_assessment(assessment_id):
 
         current_app.mongo.db.assessments.update_one(
             {'_id': ObjectId(assessment_id)},
-            {'$push': {'questions': ObjectId(question_id)}}
+            {'$push': {'questions': question_id}}
         )
 
         return jsonify(str(question_id)), 201

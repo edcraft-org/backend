@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_pymongo import PyMongo
+from flask_cors import CORS
 
 app = Flask(__name__)
 
@@ -7,6 +8,9 @@ app.config.from_object('config.Config')
 
 mongo = PyMongo(app)
 app.mongo = mongo
+
+CORS(app)
+
 
 from routes.user_routes import user_bp
 from routes.assessment_routes import assessment_bp

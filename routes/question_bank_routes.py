@@ -61,7 +61,7 @@ def add_existing_question_to_question_bank(question_bank_id):
 
         current_app.mongo.db.question_banks.update_one(
             {'_id': ObjectId(question_bank_id)},
-            {'$push': {'questions': ObjectId(question_id)}}
+            {'$push': {'questions': question_id}}
         )
 
         return jsonify(str(question_id)), 201
