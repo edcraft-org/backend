@@ -1,69 +1,46 @@
-from flask import Blueprint, request, jsonify, current_app
-from bson.objectid import ObjectId
-from models.question_bank import QuestionBank
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional
+from models.question_bank import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank
+from models.question import Question
+from beanie import PydanticObjectId
 
-question_bank_bp = Blueprint('question_bank_bp', __name__)
+question_bank_router = APIRouter()
 
-@question_bank_bp.route('/question_banks', methods=['POST'])
-def add_question_bank():
-    data = request.get_json()
-    question_bank = QuestionBank(**data)
-    question_bank_id = current_app.mongo.db.question_banks.insert_one(question_bank.to_dict()).inserted_id
-    return jsonify(str(question_bank_id)), 201
+@question_bank_router.post("/", response_model=QuestionBank)
+async def add_question_bank(question_bank: QuestionBankCreate):
+    new_question_bank = QuestionBank(**question_bank.model_dump())
+    await new_question_bank.insert()
+    return new_question_bank
 
-@question_bank_bp.route('/question_banks', methods=['GET'])
-def get_question_banks():
-    user_id = request.args.get('user_id')
+@question_bank_router.get("/", response_model=List[QuestionBank])
+async def get_question_banks(user_id: Optional[str] = None):
     query = {}
     if user_id:
         query['user_id'] = user_id
+    question_banks = await QuestionBank.find(query).to_list()
+    print(question_banks)
+    return question_banks
 
-    question_banks = current_app.mongo.db.question_banks.find(query)
-    question_banks_list = []
-    for question_bank in question_banks:
-        question_bank['_id'] = str(question_bank['_id'])  # Convert ObjectId to string
-        question_banks_list.append(question_bank)
-    return jsonify(question_banks_list), 200
+@question_bank_router.get("/{question_bank_id}", response_model=QuestionBank)
+async def get_question_bank_with_questions(question_bank_id: str):
+    question_bank = await QuestionBank.get(question_bank_id)
+    if not question_bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+    valid_question_ids = [PydanticObjectId(q_id) for q_id in question_bank.questions if PydanticObjectId.is_valid(q_id)]
+    questions = await Question.find({"_id": {"$in": valid_question_ids}}).to_list()
+    question_bank.questions = questions
+    return question_bank
 
-@question_bank_bp.route('/question_banks/<question_bank_id>', methods=['GET'])
-def get_question_bank_with_questions(question_bank_id):
-    try:
-        question_bank = current_app.mongo.db.question_banks.find_one({'_id': ObjectId(question_bank_id)})
-        if not question_bank:
-            return jsonify({"error": "Question bank not found"}), 404
+@question_bank_router.post("/{question_bank_id}/questions", response_model=str)
+async def add_existing_question_to_question_bank(question_bank_id: str, data: AddQuestionToQuestionBank):
+    question_bank = await QuestionBank.get(question_bank_id)
+    if not question_bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
 
-        question_bank['_id'] = str(question_bank['_id'])  # Convert ObjectId to string
-        question_ids = question_bank.get('questions', [])
-        questions = list(current_app.mongo.db.questions.find({'_id': {'$in': [ObjectId(qid) for qid in question_ids]}}))
-        for question in questions:
-            question['_id'] = str(question['_id'])  # Convert ObjectId to string
-        question_bank['questions'] = questions
+    question = await Question.get(data.question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
 
-        return jsonify(question_bank), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@question_bank_bp.route('/question_banks/<question_bank_id>/questions', methods=['POST'])
-def add_existing_question_to_question_bank(question_bank_id):
-    try:
-        question_bank = current_app.mongo.db.question_banks.find_one({'_id': ObjectId(question_bank_id)})
-        if not question_bank:
-            return jsonify({"error": "Question bank not found"}), 404
-
-        data = request.get_json()
-        question_id = data.get('question_id')
-        if not question_id:
-            return jsonify({"error": "Question ID is required"}), 400
-
-        question = current_app.mongo.db.questions.find_one({'_id': ObjectId(question_id)})
-        if not question:
-            return jsonify({"error": "Question not found"}), 404
-
-        current_app.mongo.db.question_banks.update_one(
-            {'_id': ObjectId(question_bank_id)},
-            {'$push': {'questions': question_id}}
-        )
-
-        return jsonify(str(question_id)), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    question_bank.questions.append(data.question_id)
+    await question_bank.save()
+    return str(data.question_id)

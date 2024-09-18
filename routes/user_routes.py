@@ -1,20 +1,16 @@
-from flask import Blueprint, request, jsonify, current_app
-from models.user import User
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List
+from models.user import User, UserCreate
 
-user_bp = Blueprint('user_bp', __name__)
+user_router = APIRouter()
 
-@user_bp.route('/users', methods=['POST'])
-def add_user():
-    data = request.get_json()
-    user = User(**data)
-    user_id = current_app.mongo.db.users.insert_one(user.to_dict()).inserted_id
-    return jsonify(str(user_id)), 201
+@user_router.post("/", response_model=User)
+async def add_user(user: UserCreate):
+    new_user = User(**user.model_dump())
+    await new_user.insert()
+    return new_user
 
-@user_bp.route('/users', methods=['GET'])
-def get_users():
-    users = current_app.mongo.db.users.find()
-    users_list = []
-    for user in users:
-        user['_id'] = str(user['_id'])
-        users_list.append(user)
-    return jsonify(users_list), 200
+@user_router.get("/", response_model=List[User])
+async def get_users():
+    users = await User.find().to_list()
+    return users

@@ -1,14 +1,19 @@
-class Question:
-    def __init__(self, text, options, answer, user_id):
-        self.text = text
-        self.options = options
-        self.answer = answer
-        self.user_id = user_id
+from beanie import Document, PydanticObjectId
+from pydantic import BaseModel, Field
+from typing import List, Optional
 
-    def to_dict(self):
-        return {
-            "text": self.text,
-            "options": self.options,
-            "answer": self.answer,
-            "user_id": self.user_id
-        }
+class Question(Document):
+    id: Optional[PydanticObjectId] = Field(None, alias="_id", description="The unique identifier of the question")
+    text: str
+    options: List[str]
+    answer: str
+    user_id: str
+
+    class Settings:
+        name = "questions"
+
+class QuestionCreate(BaseModel):
+    text: str = Field(..., description="The text of the question")
+    options: List[str] = Field(..., description="List of options for the question")
+    answer: str = Field(..., description="The correct answer for the question")
+    user_id: PydanticObjectId = Field(..., description="The ID of the user who created the question")

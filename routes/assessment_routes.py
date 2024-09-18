@@ -1,69 +1,48 @@
-from flask import Blueprint, request, jsonify, current_app
-from bson.objectid import ObjectId
-from models.assessment import Assessment
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional
+from models.assessment import Assessment, AssessmentCreate, AddQuestionToAssessment
+from models.question import Question
+from beanie import PydanticObjectId
 
-assessment_bp = Blueprint('assessment_bp', __name__)
+assessment_router = APIRouter()
 
-@assessment_bp.route('/assessments', methods=['POST'])
-def add_assessment():
-    data = request.get_json()
-    assessment = Assessment(**data)
-    assessment_id = current_app.mongo.db.assessments.insert_one(assessment.to_dict()).inserted_id
-    return jsonify(str(assessment_id)), 201
+@assessment_router.post("/", response_model=Assessment)
+async def add_assessment(assessment: AssessmentCreate):
+    new_assessment = Assessment(**assessment.model_dump())
+    await new_assessment.insert()
+    return new_assessment
 
-@assessment_bp.route('/assessments', methods=['GET'])
-def get_assessments():
-    user_id = request.args.get('user_id')
+@assessment_router.get("/", response_model=List[Assessment])
+async def get_assessments(user_id: Optional[str] = None):
     query = {}
     if user_id:
         query['user_id'] = user_id
+    assessments = await Assessment.find(query).to_list()
+    return assessments
 
-    assessments = current_app.mongo.db.assessments.find(query)
-    assessments_list = []
-    for assessment in assessments:
-        assessment['_id'] = str(assessment['_id'])  # Convert ObjectId to string
-        assessments_list.append(assessment)
-    return jsonify(assessments_list), 200
+@assessment_router.get("/{assessment_id}", response_model=Assessment)
+async def get_assessment_with_questions(assessment_id: str):
+    assessment = await Assessment.get(assessment_id)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    valid_question_ids = [PydanticObjectId(q_id) for q_id in assessment.questions if PydanticObjectId.is_valid(q_id)]
+    questions = await Question.find({"_id": {"$in": valid_question_ids}}).to_list()
+    assessment.questions = questions
+    return assessment
 
-@assessment_bp.route('/assessments/<assessment_id>', methods=['GET'])
-def get_assessment_with_questions(assessment_id):
-    try:
-        assessment = current_app.mongo.db.assessments.find_one({'_id': ObjectId(assessment_id)})
-        if not assessment:
-            return jsonify({"error": "Assessment not found"}), 404
+@assessment_router.post("/{assessment_id}/questions", response_model=str)
+async def add_existing_question_to_assessment(assessment_id: str, data: AddQuestionToAssessment):
+    assessment = await Assessment.get(assessment_id)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
 
-        assessment['_id'] = str(assessment['_id'])  # Convert ObjectId to string
-        question_ids = assessment.get('questions', [])
-        questions = list(current_app.mongo.db.questions.find({'_id': {'$in': [ObjectId(qid) for qid in question_ids]}}))
-        for question in questions:
-            question['_id'] = str(question['_id'])  # Convert ObjectId to string
-        assessment['questions'] = questions
+    question = await Question.get(data.question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
 
-        return jsonify(assessment), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if data.question_id in assessment.questions:
+        raise HTTPException(status_code=400, detail="Question already added to the assessment")
 
-@assessment_bp.route('/assessments/<assessment_id>/questions', methods=['POST'])
-def add_existing_question_to_assessment(assessment_id):
-    try:
-        assessment = current_app.mongo.db.assessments.find_one({'_id': ObjectId(assessment_id)})
-        if not assessment:
-            return jsonify({"error": "Assessment not found"}), 404
-
-        data = request.get_json()
-        question_id = data.get('question_id')
-        if not question_id:
-            return jsonify({"error": "Question ID is required"}), 400
-
-        question = current_app.mongo.db.questions.find_one({'_id': ObjectId(question_id)})
-        if not question:
-            return jsonify({"error": "Question not found"}), 404
-
-        current_app.mongo.db.assessments.update_one(
-            {'_id': ObjectId(assessment_id)},
-            {'$push': {'questions': question_id}}
-        )
-
-        return jsonify(str(question_id)), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    assessment.questions.append(data.question_id)
+    await assessment.save()
+    return str(data.question_id)
