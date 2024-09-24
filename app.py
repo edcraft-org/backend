@@ -8,12 +8,13 @@ from routes.user_routes import user_router
 from routes.assessment_routes import assessment_router
 from routes.question_bank_routes import question_bank_router
 from routes.question_routes import question_router
+from routes.question_generation_routes import question_generation_router
+
+from config import Config
+# Load configuration
+config = Config()
 
 app = FastAPI()
-
-# Load configuration
-from config import Config
-config = Config()
 
 # Initialize MongoDB client
 client = AsyncIOMotorClient(config.MONGO_URI)
@@ -26,6 +27,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,6 +42,7 @@ app.include_router(user_router, prefix="/users")
 app.include_router(assessment_router, prefix="/assessments")
 app.include_router(question_bank_router, prefix="/question_banks")
 app.include_router(question_router, prefix="/questions")
+app.include_router(question_generation_router, prefix="/question_generation")
 
 @app.get("/")
 async def index():

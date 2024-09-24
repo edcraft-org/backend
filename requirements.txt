@@ -1,2 +1,5 @@
 fastapi
 beanie
+faker
+python-dotenv
+uvicorn
