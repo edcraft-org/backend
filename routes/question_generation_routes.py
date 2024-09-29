@@ -38,14 +38,25 @@ async def generate_question(request: GenerateQuestionRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    input_type = question_class.input_type()
-    query_options = question_class.query_options()
-    output_type = question_class.output_type('Preorder')  # Example method name
+    questions_and_answers = []
 
-    return {
-        "input_type": input_type,
-        "query_options": query_options,
-        "output_type": output_type,
-        "number_of_options": request.number_of_options,
-        "number_of_questions": request.number_of_questions
-    }
+    for _ in range(request.number_of_questions):
+        # Obtain input variables and options data
+        variables_data, options_data = question_class.obtain_input(request.queryable, request.number_of_options)
+
+        # Process the method to get the answer and options
+        result = question_class.process_method(request.queryable, variables_data, options_data)
+
+        # # Format the question description
+        # question_text = request.question_description.format(*variables_data)
+        # Format the question description
+        question_text = question_class.format_question_description(request.queryable, request.question_description, variables_data)
+
+
+        questions_and_answers.append({
+            "question": question_text,
+            "answer": result["answer"],
+            "options": result["options"]
+        })
+
+    return questions_and_answers

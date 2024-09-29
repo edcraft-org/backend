@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any, List
 
 class InputClass(ABC):
     @classmethod
@@ -23,6 +24,11 @@ class ProcessorClass(ABC):
     @classmethod
     @abstractmethod
     def output_type(cls, method_name):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def format_question_description(cls, queryable: str, question_description: str, variables_data: List[Any]) -> str:
         pass
 
 class QueryableClass(ABC):
@@ -56,3 +62,17 @@ class Question(InputClass, ProcessorClass, QueryableClass):
     @abstractmethod
     def output_type(cls, method_name):
         pass
+
+    @classmethod
+    def format_question_description(cls, queryable: str, question_description: str, variables_data: List[Any]) -> str:
+        # Find the topic item that matches the queryable
+        topic_item = next((item for item in cls.topic if item['queryable'] == queryable), None)
+        if not topic_item:
+            raise ValueError(f"Queryable {queryable} not found in Insertion Sort topic")
+
+        # Format the question description with variable names and values
+        formatted_description = question_description
+        for index, variable_name in enumerate(topic_item['variables']):
+            formatted_description = formatted_description.replace(f"{{{index}}}", f"{variable_name}: {variables_data[index]}")
+
+        return formatted_description

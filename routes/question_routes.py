@@ -12,7 +12,7 @@ async def add_question(question: QuestionCreate):
 
 @question_router.get("/{question_id}", response_model=Question)
 async def get_question_by_id(question_id: str):
-    question = await Question.get(question_id)
+    question = await Question.get(PydanticObjectId(question_id))
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return question

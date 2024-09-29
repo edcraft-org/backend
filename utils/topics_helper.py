@@ -1,11 +1,10 @@
-from question.tree import BinarySearchTreeQuestion
+from question.sort.utils import SORT_TOPIC_SUBTOPIC_MAPPING
+from question.tree.utils import TREE_TOPIC_SUBTOPIC_MAPPING
 
-# Define the nested dictionary for topic-subtopic mapping
+# Combine the mappings
 TOPIC_SUBTOPIC_MAPPING = {
-    "Tree": {
-        "Binary Search Tree": BinarySearchTreeQuestion,
-        # Add more subtopics here
-    },
+    **SORT_TOPIC_SUBTOPIC_MAPPING,  # Merge the sort mappings
+    **TREE_TOPIC_SUBTOPIC_MAPPING,  # Merge the tree mappings
     # Add more topics here
 }
 

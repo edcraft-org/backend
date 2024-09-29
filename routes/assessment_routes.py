@@ -36,7 +36,7 @@ async def add_existing_question_to_assessment(assessment_id: str, data: AddQuest
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    question = await Question.get(data.question_id)
+    question = await Question.get(PydanticObjectId(data.question_id))
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
