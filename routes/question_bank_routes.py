@@ -13,12 +13,13 @@ async def add_question_bank(question_bank: QuestionBankCreate):
     return new_question_bank
 
 @question_bank_router.get("/", response_model=List[QuestionBank])
-async def get_question_banks(user_id: Optional[str] = None):
+async def get_question_banks(user_id: Optional[str] = None, project_id: Optional[str] = None):
     query = {}
     if user_id:
         query['user_id'] = user_id
+    if project_id:
+        query['project_id'] = project_id
     question_banks = await QuestionBank.find(query).to_list()
-    print(question_banks)
     return question_banks
 
 @question_bank_router.get("/{question_bank_id}", response_model=QuestionBank)

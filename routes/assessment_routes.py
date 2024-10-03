@@ -13,10 +13,12 @@ async def add_assessment(assessment: AssessmentCreate):
     return new_assessment
 
 @assessment_router.get("/", response_model=List[Assessment])
-async def get_assessments(user_id: Optional[str] = None):
+async def get_assessments(user_id: Optional[str] = None, project_id: Optional[str] = None):
     query = {}
     if user_id:
         query['user_id'] = user_id
+    if project_id:
+        query['project_id'] = project_id
     assessments = await Assessment.find(query).to_list()
     return assessments
 

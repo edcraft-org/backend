@@ -1,4 +1,5 @@
 from .user import User, UserCreate
+from .project import Project, ProjectCreate
 from .assessment import Assessment, AssessmentCreate, AddQuestionToAssessment
 from .question_bank import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank
 from .question import Question, QuestionCreate

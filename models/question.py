@@ -8,6 +8,8 @@ class Question(Document):
     options: List[str]
     answer: str
     user_id: str
+    marks: float = Field(..., description="The marks assigned to the question")
+
 
     class Settings:
         name = "questions"
@@ -17,3 +19,4 @@ class QuestionCreate(BaseModel):
     options: List[str] = Field(..., description="List of options for the question")
     answer: str = Field(..., description="The correct answer for the question")
     user_id: str = Field(..., description="The ID of the user who created the question")
+    marks: float = Field(..., description="The marks assigned to the question")

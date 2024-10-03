@@ -56,6 +56,7 @@ async def generate_question(request: GenerateQuestionRequest):
         questions_and_answers.append({
             "question": question_text,
             "answer": result["answer"],
+            "marks": request.marks,
             "options": result["options"]
         })
 

@@ -6,5 +6,6 @@ class GenerateQuestionRequest(BaseModel):
     queryable: str
     question_description: str
     question_type: str
+    marks: float
     number_of_options: int
     number_of_questions: int
