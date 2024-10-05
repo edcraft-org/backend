@@ -20,3 +20,6 @@ class AssessmentCreate(BaseModel):
 
 class AddQuestionToAssessment(BaseModel):
     question_id: str = Field(..., description="The ID of the question to add to the assessment")
+
+class AssessmentTitleUpdate(BaseModel):
+    title: str

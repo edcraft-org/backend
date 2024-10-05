@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
-from models.question_bank import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank
-from models.question import Question
+from models import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank, QuestionBankTitleUpdate, Question
 from beanie import PydanticObjectId
 
 question_bank_router = APIRouter()
@@ -45,3 +44,33 @@ async def add_existing_question_to_question_bank(question_bank_id: str, data: Ad
     question_bank.questions.append(data.question_id)
     await question_bank.save()
     return str(data.question_id)
+
+@question_bank_router.delete("/{question_bank_id}/questions/{question_id}", response_model=str)
+async def remove_question_from_question_bank(question_bank_id: str, question_id: str):
+    question_bank = await QuestionBank.get(question_bank_id)
+    if not question_bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+
+    if question_id not in question_bank.questions:
+        raise HTTPException(status_code=404, detail="Question not found in the question bank")
+
+    question_bank.questions.remove(question_id)
+    await question_bank.save()
+    return f"Question {question_id} removed from question bank {question_bank_id} successfully"
+
+@question_bank_router.delete("/{question_bank_id}", response_model=str)
+async def delete_question_bank(question_bank_id: str):
+    question_bank = await QuestionBank.get(question_bank_id)
+    if not question_bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+    await question_bank.delete()
+    return f"Question bank {question_bank_id} deleted successfully"
+
+@question_bank_router.put("/{question_bank_id}/title", response_model=QuestionBank)
+async def rename_question_bank_title(question_bank_id: str, title_update: QuestionBankTitleUpdate):
+    question_bank = await QuestionBank.get(question_bank_id)
+    if not question_bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+    question_bank.title = title_update.title
+    await question_bank.save()
+    return question_bank

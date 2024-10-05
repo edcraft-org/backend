@@ -16,3 +16,11 @@ async def get_question_by_id(question_id: str):
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return question
+
+@question_router.delete("/{question_id}", response_model=str)
+async def delete_question(question_id: str):
+    question = await Question.get(PydanticObjectId(question_id))
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    await question.delete()
+    return f"Question {question_id} deleted successfully"

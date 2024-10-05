@@ -13,3 +13,6 @@ class Project(Document):
 class ProjectCreate(BaseModel):
     title: str = Field(..., description="The title of the project")
     user_id: str = Field(..., description="The ID of the user who created the project")
+
+class ProjectTitleUpdate(BaseModel):
+    title: str

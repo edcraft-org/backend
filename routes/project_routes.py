@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
-from models.project import Project, ProjectCreate
+from models import Project, ProjectCreate, ProjectTitleUpdate
 from beanie import PydanticObjectId
 
 project_router = APIRouter()
@@ -33,3 +33,12 @@ async def delete_project(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
     await project.delete()
     return f"Project {project_id} deleted successfully"
+
+@project_router.put("/{project_id}/title", response_model=Project)
+async def rename_project_title(project_id: str, title_update: ProjectTitleUpdate):
+    project = await Project.get(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project.title = title_update.title
+    await project.save()
+    return project

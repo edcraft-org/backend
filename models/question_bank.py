@@ -20,3 +20,6 @@ class QuestionBankCreate(BaseModel):
 
 class AddQuestionToQuestionBank(BaseModel):
     question_id: str = Field(..., description="The ID of the question to add to the question bank")
+
+class QuestionBankTitleUpdate(BaseModel):
+    title: str
