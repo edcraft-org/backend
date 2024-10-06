@@ -73,6 +73,6 @@ class Question(InputClass, ProcessorClass, QueryableClass):
         # Format the question description with variable names and values
         formatted_description = question_description
         for index, variable_name in enumerate(topic_item['variables']):
-            formatted_description = formatted_description.replace(f"{{{index}}}", f"{variable_name}: {variables_data[index]}")
+            formatted_description = formatted_description.replace(f"{{{variable_name}}}", f"{variable_name}: {variables_data[index]}")
 
         return formatted_description
