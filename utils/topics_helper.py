@@ -1,24 +1,15 @@
-from question.sort.utils import SORT_TOPIC_SUBTOPIC_MAPPING
-from question.tree.utils import TREE_TOPIC_SUBTOPIC_MAPPING
+from question.sort.sort_class import SortClass
 
-# Combine the mappings
-TOPIC_SUBTOPIC_MAPPING = {
-    **SORT_TOPIC_SUBTOPIC_MAPPING,  # Merge the sort mappings
-    **TREE_TOPIC_SUBTOPIC_MAPPING,  # Merge the tree mappings
-    # Add more topics here
+TOPIC_CLASSES_MAPPING = {
+    "Sort": SortClass
 }
 
-def get_question_class(topic, subtopic):
-    try:
-        return TOPIC_SUBTOPIC_MAPPING[topic][subtopic]
-    except KeyError:
-        raise ValueError(f"Invalid topic '{topic}' or subtopic '{subtopic}'")
-
 def get_topics():
-    return list(TOPIC_SUBTOPIC_MAPPING.keys())
+    return list(TOPIC_CLASSES_MAPPING.keys())
 
-def get_subtopics(topic):
+
+def get_topic_class(topic: str):
     try:
-        return list(TOPIC_SUBTOPIC_MAPPING[topic].keys())
+        return TOPIC_CLASSES_MAPPING[topic]
     except KeyError:
         raise ValueError(f"Invalid topic '{topic}'")

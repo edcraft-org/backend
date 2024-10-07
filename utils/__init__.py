@@ -1,1 +1,0 @@
-from utils.topics_helper import TOPIC_SUBTOPIC_MAPPING
