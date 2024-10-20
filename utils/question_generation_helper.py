@@ -11,6 +11,7 @@ from question.input_subclasses.primitive_types.bool_type import BoolInputClass
 from question.input_subclasses.primitive_types.str_type import StringInputClass
 from question.input_subclasses.primitive_types.int_type import IntInputClass
 from question.processor_class import ProcessorClass
+from question.queryable_class import QueryableClass
 from utils.constants import MAX_VALUE
 
 
@@ -188,3 +189,21 @@ def generate_question(autoloaded_classes: Dict[str, Dict[str, ProcessorClass]], 
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating question: {str(e)}")
+
+def autoload_queryable_classes(base_path: str, base_package: str) -> Dict[str, Type[QueryableClass]]:
+    """Autoload all queryable classes from the queryable_subclasses directory."""
+    try:
+        queryable_classes = {}
+        queryable_path = os.path.join(base_path, base_package, 'queryable_subclasses')
+        python_files = [f[:-3] for f in os.listdir(queryable_path) if f.endswith('.py') and f != '__init__.py']
+
+        for file in python_files:
+            module_name = f"{base_package}.queryable_subclasses.{file}"
+            module = importlib.import_module(module_name)
+            for name, obj in inspect.getmembers(module, inspect.isclass):
+                if issubclass(obj, QueryableClass) and obj is not QueryableClass:
+                    queryable_classes[name] = obj
+
+        return queryable_classes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error autoloading queryable classes: {str(e)}")

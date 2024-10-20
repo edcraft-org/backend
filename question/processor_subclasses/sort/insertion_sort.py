@@ -1,6 +1,5 @@
 from functools import singledispatchmethod
-import random
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Tuple
 from question.processor_class import ProcessorClass
 from question.queryable_class import QueryableClass
 from question.queryable_subclasses.output import OutputQueryableClass

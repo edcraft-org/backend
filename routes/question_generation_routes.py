@@ -2,7 +2,8 @@ import os
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
-from utils.question_generation_helper import autoload_classes, generate_question, list_queryable, list_subtopics, list_topics, list_variable
+from question.queryable_class import QueryableClass
+from utils.question_generation_helper import autoload_classes, autoload_queryable_classes, generate_question, list_queryable, list_subtopics, list_topics, list_variable
 
 question_generation_router = APIRouter()
 
@@ -10,6 +11,11 @@ def get_autoloaded_classes() -> Dict[str, Dict[str, Any]]:
     base_package = 'question.processor_subclasses'
     base_path = os.path.join(os.path.dirname(__file__), '..', 'question', 'processor_subclasses')
     return autoload_classes(base_path, base_package)
+
+def get_autoloaded_queryable_classes() -> Dict[str, QueryableClass]:
+    base_package = 'question'
+    base_path = os.path.join(os.path.dirname(__file__), '..')
+    return autoload_queryable_classes(base_path, base_package)
 
 @question_generation_router.get("/topics")
 async def get_topics_route(autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
@@ -33,6 +39,13 @@ async def list_queryables_route(topic: str, subtopic: str, autoloaded_classes: D
         return list_queryable(autoloaded_classes, topic, subtopic)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.get("/queryable_classes")
+async def get_queryable_classes_route(queryable_classes: Dict[str, QueryableClass] = Depends(get_autoloaded_queryable_classes)):
+    try:
+        return list(queryable_classes.keys())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
