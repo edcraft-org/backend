@@ -1,25 +1,13 @@
 from abc import ABC, abstractmethod
-from enum import Enum
-
-class QueryableTypes(Enum):
-    STEP = "Step"
-    OUTPUT = "Output"
-
-class VariableTypes(Enum):
-    INPUT = "Input"
-    STEP = "Step"
-
+from typing import List
 
 class QueryableClass(ABC):
     @classmethod
-    def queryable_options(cls):
-        return [
-            {
-                'queryable': QueryableTypes.STEP.value,
-                'variables': [VariableTypes.INPUT.value, VariableTypes.STEP.value],
-            },
-            {
-                'queryable': QueryableTypes.OUTPUT.value,
-                'variables': [VariableTypes.INPUT.value],
-            }
-        ]
+    @abstractmethod
+    def queryable(cls) -> str:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def variables(cls) -> List[str]:
+        pass

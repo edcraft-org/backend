@@ -1,69 +1,66 @@
-from fastapi import APIRouter, HTTPException
-from utils.topics_helper import get_topics, get_topic_class
+import os
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
+from utils.question_generation_helper import autoload_classes, generate_question, list_queryable, list_subtopics, list_topics, list_variable
 
 question_generation_router = APIRouter()
 
+def get_autoloaded_classes() -> Dict[str, Dict[str, Any]]:
+    base_package = 'question.processor_subclasses'
+    base_path = os.path.join(os.path.dirname(__file__), '..', 'question', 'processor_subclasses')
+    return autoload_classes(base_path, base_package)
+
 @question_generation_router.get("/topics")
-async def list_topics():
-    return get_topics()
+async def get_topics_route(autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
+    try:
+        return list_topics(autoloaded_classes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.get("/topics/{topic}/subtopics")
-async def list_subtopics(topic: str):
+async def get_subtopics_route(topic: str, autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
     try:
-        topic_class = get_topic_class(topic)
-        return topic_class.subtopic()
+        return list_subtopics(autoloaded_classes, topic)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.get("/topics/{topic}/subtopics/{subtopic}/queryables")
-async def list_queryables(topic: str, subtopic: str):
+async def list_queryables_route(topic: str, subtopic: str, autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
     try:
-        topic_class = get_topic_class(topic)
-        return topic_class.queryable_options()
+        return list_queryable(autoloaded_classes, topic, subtopic)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# @question_generation_router.get("/topics/{topic}/subtopics/{subtopic}/queryables/{queryable}/variables")
-# async def list_variables(topic: str, subtopic: str, queryable: str):
-#     try:
-#         question_class = get_question_class(topic, subtopic)
-#         return question_class.variables(queryable)
-#     except ValueError as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+@question_generation_router.get("/topics/{topic}/subtopics/{subtopic}/queryables/{queryable}/variables")
+async def list_variables_route(topic: str, subtopic: str, queryable: str, autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
+    try:
+        return list_variable(autoloaded_classes, topic, subtopic, queryable)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.post("/generate")
-async def generate_question(request: GenerateQuestionRequest):
+async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, Any]] = Depends(get_autoloaded_classes)):
+    results = []
     try:
-        # question_class = get_question_class(request.topic, request.subtopic)
-        topic_class = get_topic_class(request.topic)
+        for _ in range(request.number_of_questions):
+            generated_question = generate_question(autoloaded_classes, request.topic, request.subtopic, request.queryable, request.number_of_options, request.question_description)
+
+            if generated_question is None:
+                raise HTTPException(status_code=500, detail="Failed to generate question.")
+
+            results.append({
+                **generated_question,
+                "marks": request.marks,
+            })
+        return results
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-    questions_and_answers = []
-
-    for _ in range(request.number_of_questions):
-        # Obtain input variables and options data
-        variables_data, options_data = topic_class.obtain_input(request.number_of_options)
-
-        # Process the method to get the answer and options
-        result = topic_class.process_method(request.queryable, request.subtopic, variables_data, options_data)
-
-
-        # Format the question description
-        queryable_options = topic_class.queryable_options()
-        topic_item = next((item for item in queryable_options if item['queryable'] == request.queryable), None)
-        if not topic_item:
-            raise ValueError(f"Queryable {request.queryable} not found in queryable options")
-        queryable_variables = topic_item['variables']
-
-        question_text = topic_class.format_question_description(queryable_variables, request.question_description, variables_data)
-
-        questions_and_answers.append({
-            "question": question_text,
-            "answer": result["answer"],
-            "marks": request.marks,
-            "options": result["options"]
-        })
-
-    return questions_and_answers
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
