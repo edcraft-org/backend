@@ -43,16 +43,6 @@ app.include_router(question_generation_router, prefix="/question_generation")
 async def index():
     return {"message": "Edcraft API"}
 
-@app.get("/test_db_connection")
-async def test_db_connection():
-    users_collection = db["users"]
-    users = await users_collection.find().to_list(10)
-    for user in users:
-        if "_id" in user:
-            user["_id"] = str(user["_id"])
-
-    return {"users": users}
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
