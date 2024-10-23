@@ -29,7 +29,7 @@ def get_subtopics(topic_path: str) -> List[str]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting subtopics: {str(e)}")
 
-def get_class_from_module(module_name: str) -> ProcessorClass:
+def get_class_from_module(module_name: str) -> Type[ProcessorClass]:
     """Get all classes inside the module."""
     try:
         module = importlib.import_module(module_name)
@@ -40,7 +40,7 @@ def get_class_from_module(module_name: str) -> ProcessorClass:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting class from module: {str(e)}")
 
-def autoload_classes(base_path: str, base_package: str) -> Dict[str, Dict[str, ProcessorClass]]:
+def autoload_classes(base_path: str, base_package: str) -> Dict[str, Dict[str, Type[ProcessorClass]]]:
     """Autoload classes from the algorithm folder."""
     try:
         autoloaded_classes = {}
@@ -60,14 +60,14 @@ def autoload_classes(base_path: str, base_package: str) -> Dict[str, Dict[str, P
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error autoloading classes: {str(e)}")
 
-def list_topics(autoloaded_classes: Dict[str, Dict[str, List[Type]]]) -> List[str]:
+def list_topics(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]]) -> List[str]:
     """Return a list of all topics."""
     try:
         return list(autoloaded_classes.keys())
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing topics: {str(e)}")
 
-def list_subtopics(autoloaded_classes: Dict[str, Dict[str, List[Type]]], topic: str) -> List[str]:
+def list_subtopics(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]], topic: str) -> List[str]:
     """Return a list of all subtopics for a given topic."""
     try:
         if topic in autoloaded_classes:
@@ -79,7 +79,7 @@ def list_subtopics(autoloaded_classes: Dict[str, Dict[str, List[Type]]], topic: 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing subtopics: {str(e)}")
 
-def get_subtopic_class(autoloaded_classes: Dict[str, Dict[str, List[Type]]], topic: str, subtopic: str) -> ProcessorClass:
+def get_subtopic_class(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]], topic: str, subtopic: str) -> Type[ProcessorClass]:
     """Return class for a given subtopic."""
     try:
         if topic in autoloaded_classes and subtopic in autoloaded_classes[topic]:
@@ -105,7 +105,7 @@ def get_function_signatures(cls: ProcessorClass) -> Dict[Type, inspect.Signature
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting function signatures: {str(e)}")
 
-def list_queryable(autoloaded_classes: Dict[str, Dict[str, ProcessorClass]], topic: str, subtopic: str) -> List[str]:
+def list_queryable(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]], topic: str, subtopic: str) -> List[str]:
     try:
         cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
         signatures = get_function_signatures(cls)
@@ -115,7 +115,7 @@ def list_queryable(autoloaded_classes: Dict[str, Dict[str, ProcessorClass]], top
     except Exception as e:
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
-def list_variable(autoloaded_classes: Dict[str, Dict[str, ProcessorClass]], topic: str, subtopic: str, queryable_type: str) -> List[str]:
+def list_variable(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]], topic: str, subtopic: str, queryable_type: str) -> List[str]:
     try:
         cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
         signatures = get_function_signatures(cls)
@@ -160,7 +160,7 @@ def generate_data_for_type(data_type: Type) -> Any:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating data for type: {str(e)}")
 
-def generate_question(autoloaded_classes: Dict[str, Dict[str, ProcessorClass]], topic: str, subtopic: str, queryable_type: str, number_of_options: int, question_description: str) -> Dict[str, Any]:
+def generate_question(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]], topic: str, subtopic: str, queryable_type: str, number_of_options: int, question_description: str) -> Dict[str, Any]:
     try:
         cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
         signatures = get_function_signatures(cls)
