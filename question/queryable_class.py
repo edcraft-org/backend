@@ -6,8 +6,3 @@ class QueryableClass(ABC):
     @abstractmethod
     def queryable(cls) -> str:
         pass
-
-    @classmethod
-    @abstractmethod
-    def variables(cls) -> List[str]:
-        pass

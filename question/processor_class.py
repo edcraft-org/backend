@@ -10,10 +10,9 @@ class ProcessorClass(ABC):
         raise TypeError(f"Undefined subtype: {type(queryable)}")
 
     @classmethod
-    def format_question_description(cls, queryable: QueryableClass, question_description: str, variables_data: List[Any]) -> str:
-        queryable_variables = queryable.variables()
+    def format_question_description(cls, question_description: str, variables: Dict[str, Any]) -> str:
         formatted_description = question_description
-        for index, variable_name in enumerate(queryable_variables):
-            formatted_description = formatted_description.replace(f"{{{variable_name}}}", f"{variable_name}: {variables_data[index]}")
+        for variable_key, variable_value in variables.items():
+            formatted_description = formatted_description.replace(f"{{{variable_key}}}", f"{variable_key}: {variable_value}")
 
         return formatted_description

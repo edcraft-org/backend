@@ -122,7 +122,8 @@ def list_variable(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClass]]]
 
         for queryable_cls in signatures.keys():
             if queryable_cls.queryable() == queryable_type:
-                return queryable_cls.variables()
+                signature = signatures[queryable_cls]
+                return [param_name for param_name in signature.parameters if param_name not in ['cls', 'queryable']]
 
         raise HTTPException(status_code=404, detail=f"Queryable type '{queryable_type}' not found.")
     except ValueError as e:
@@ -173,7 +174,7 @@ def generate_question(autoloaded_classes: Dict[str, Dict[str, Type[ProcessorClas
                         generated_data[param_name] = generate_data_for_type(param.annotation)
                 result = {}
                 result["answer"] = str(cls.process_method(queryable_instance, **copy.deepcopy(generated_data)))
-                result["question"] = cls.format_question_description(queryable_instance, question_description, list(generated_data.values()))
+                result["question"] = cls.format_question_description(question_description, generated_data)
                 options = []
                 for _ in range(number_of_options):
                     generated_options = copy.deepcopy(generated_data)
