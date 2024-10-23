@@ -1,8 +1,9 @@
 
 from abc import ABC
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from question.queryable_class import QueryableClass
+
 
 class ProcessorClass(ABC):
     @classmethod

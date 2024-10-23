@@ -18,6 +18,7 @@ db = client[config.MONGO_DBNAME]
 # Define lifespan context manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_beanie(database=db, document_models=[User, Project, Assessment, QuestionBank, Question, UserAlgorithm])
     yield
 
 app = FastAPI(lifespan=lifespan)

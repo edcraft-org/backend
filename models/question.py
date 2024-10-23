@@ -2,6 +2,7 @@ from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+
 class Question(Document):
     id: Optional[PydanticObjectId] = Field(None, alias="_id", description="The unique identifier of the question")
     text: str
@@ -10,9 +11,9 @@ class Question(Document):
     user_id: str
     marks: float = Field(..., description="The marks assigned to the question")
 
-
     class Settings:
         name = "questions"
+
 
 class QuestionCreate(BaseModel):
     text: str = Field(..., description="The text of the question")

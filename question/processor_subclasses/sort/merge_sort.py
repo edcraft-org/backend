@@ -5,6 +5,7 @@ from question.queryable_class import QueryableClass
 from question.queryable_subclasses.output import OutputQueryableClass
 from question.queryable_subclasses.step import StepQueryableClass
 
+
 class MergeSortClass(ProcessorClass):
     @singledispatchmethod
     @classmethod

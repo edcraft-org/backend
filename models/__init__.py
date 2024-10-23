@@ -4,3 +4,4 @@ from .assessment import Assessment, AssessmentCreate, AddQuestionToAssessment, A
 from .question_bank import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank, QuestionBankTitleUpdate
 from .question import Question, QuestionCreate
 from .question_generation import GenerateQuestionRequest
+from .user_algorithm import UserAlgorithm, UserAlgorithmCreate, UserAlgorithmUpdate

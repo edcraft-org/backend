@@ -1,9 +1,10 @@
 from functools import singledispatchmethod
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Dict
 from question.processor_class import ProcessorClass
 from question.queryable_class import QueryableClass
 from question.queryable_subclasses.output import OutputQueryableClass
 from question.queryable_subclasses.step import StepQueryableClass
+
 
 class DFSClass(ProcessorClass):
     @singledispatchmethod
