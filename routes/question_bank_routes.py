@@ -3,6 +3,8 @@ from typing import List, Optional
 from models import QuestionBank, QuestionBankCreate, AddQuestionToQuestionBank, QuestionBankTitleUpdate, Question
 from beanie import PydanticObjectId
 
+from models.question_bank import QuestionBankWithQuestions
+
 question_bank_router = APIRouter()
 
 
@@ -24,15 +26,19 @@ async def get_question_banks(user_id: Optional[str] = None, project_id: Optional
     return question_banks
 
 
-@question_bank_router.get("/{question_bank_id}", response_model=QuestionBank)
+@question_bank_router.get("/{question_bank_id}", response_model=QuestionBankWithQuestions)
 async def get_question_bank_with_questions(question_bank_id: str):
     question_bank = await QuestionBank.get(question_bank_id)
     if not question_bank:
         raise HTTPException(status_code=404, detail="Question bank not found")
     valid_question_ids = [PydanticObjectId(q_id) for q_id in question_bank.questions if PydanticObjectId.is_valid(q_id)]
-    questions = await Question.find({"_id": {"$in": valid_question_ids}}).to_list()
-    question_bank.questions = questions
-    return question_bank
+    full_questions = await Question.find({"_id": {"$in": valid_question_ids}}).to_list()
+
+    response = QuestionBankWithQuestions.construct(
+        **question_bank.dict(),
+        full_questions=full_questions
+    )
+    return response
 
 
 @question_bank_router.post("/{question_bank_id}/questions", response_model=str)
