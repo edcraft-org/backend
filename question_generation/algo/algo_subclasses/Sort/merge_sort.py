@@ -1,22 +1,18 @@
-from typing import List, Tuple
-from question.processor_class import Processor
-from question.processor_subclasses.Sort.queryable.sort_output import SortOutputQueryable
-from question.processor_subclasses.Sort.queryable.sort_step import SortStepQueryable
+from typing import List
+from question_generation.algo.algo import Algo
+from question_generation.queryable.queryable_subclasses.output import Output
+from question_generation.queryable.queryable_subclasses.step import Step
+from question_generation.question.question import Question
 
-class MergeSortClass(Processor, SortOutputQueryable, SortStepQueryable):
-    def algo(self, input: List[int]) -> List[Tuple[List[int], int]]:
-        states: List[Tuple[List[int], int]] = []
-        step = 0
-
+class MergeSortClass(Algo, Question, Output, Step):
+    def algo(self, input: List[int]):
         def merge_sort(arr: List[int], left: int, right: int):
-            nonlocal step
             if left < right:
                 mid = (left + right) // 2
                 merge_sort(arr, left, mid)
                 merge_sort(arr, mid + 1, right)
                 merge(arr, left, mid, right)
-                step += 1
-                states.append((arr.copy(), step))
+                self.step(arr[:])
 
         def merge(arr: List[int], left: int, mid: int, right: int):
             n1 = mid - left + 1
@@ -48,4 +44,4 @@ class MergeSortClass(Processor, SortOutputQueryable, SortStepQueryable):
                 k += 1
 
         merge_sort(input, 0, len(input) - 1)
-        return states
+        self.output(input[:])

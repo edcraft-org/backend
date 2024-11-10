@@ -1,8 +1,9 @@
 from typing import Any, Type, get_args, get_origin
-from question.input_subclasses.primitive_types.bool_type import BoolInput
-from question.input_subclasses.primitive_types.str_type import StringInput
-from question.input_subclasses.primitive_types.int_type import IntInput
 
+
+from question_generation.input.input_subclasses.primitive.bool_type import BoolInput
+from question_generation.input.input_subclasses.primitive.int_type import IntInput
+from question_generation.input.input_subclasses.primitive.str_type import StringInput
 from utils.constants import MAX_VALUE
 
 def generate_data_for_type(data_type: Type) -> Any:

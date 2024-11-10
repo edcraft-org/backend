@@ -1,21 +1,17 @@
-from typing import List, Tuple
-from question.processor_class import Processor
-from question.processor_subclasses.Sort.queryable.sort_output import SortOutputQueryable
-from question.processor_subclasses.Sort.queryable.sort_step import SortStepQueryable
+from typing import List
+from question_generation.algo.algo import Algo
+from question_generation.queryable.queryable_subclasses.output import Output
+from question_generation.queryable.queryable_subclasses.step import Step
+from question_generation.question.question import Question
 
-class QuickSortClass(Processor, SortOutputQueryable, SortStepQueryable):
-    def algo(self, input: List[int]) -> List[Tuple[List[int], int]]:
-        states: List[Tuple[List[int], int]] = []
-        step = 0
-
+class QuickSortClass(Algo, Question, Output, Step):
+    def algo(self, input: List[int]):
         def quick_sort(arr: List[int], low: int, high: int):
-            nonlocal step
             if low < high:
                 pi = partition(arr, low, high)
                 quick_sort(arr, low, pi - 1)
                 quick_sort(arr, pi + 1, high)
-                step += 1
-                states.append((arr.copy(), step))
+                self.step(arr[:])
 
         def partition(arr: List[int], low: int, high: int) -> int:
             pivot = arr[high]
@@ -28,4 +24,4 @@ class QuickSortClass(Processor, SortOutputQueryable, SortStepQueryable):
             return i + 1
 
         quick_sort(input, 0, len(input) - 1)
-        return states
+        self.output(input[:])
