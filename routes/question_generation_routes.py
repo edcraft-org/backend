@@ -2,10 +2,11 @@ from pathlib import Path
 from typing import Dict, List, Type
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
+from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from question_generation.algo.algo import Algo
 from utils.question_generation_helper import (
-    autoload_classes, generate_question,
+    autoload_classes, generate_question, get_all_subclasses,
     list_queryable, list_subtopics, list_topics, list_variable,
     GeneratedQuestionClassType
 )
@@ -59,6 +60,13 @@ async def list_variables_route(topic: str, subtopic: str, queryable: str, autolo
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@question_generation_router.get("/quantifiables")
+async def list_quantifiables_route() -> List[str]:
+    try:
+        return get_all_subclasses(Quantifiable)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @question_generation_router.post("/generate")
 async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)):
     results = []
@@ -66,7 +74,8 @@ async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: D
         for _ in range(request.number_of_questions):
             generated_question = generate_question(
                 autoloaded_classes, request.topic, request.subtopic,
-                request.queryable, request.number_of_options, request.question_description
+                request.queryable, request.quantifiables,
+                request.number_of_options, request.question_description,
             )
 
             if generated_question is None:

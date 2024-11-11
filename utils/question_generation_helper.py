@@ -4,6 +4,7 @@ import inspect
 from functools import wraps
 from pathlib import Path
 import random
+import re
 from typing import Any, Dict, List, Type, Union
 from fastapi import HTTPException
 from question_generation.algo.algo import Algo
@@ -123,6 +124,24 @@ def get_variable_annotations(cls: GeneratedQuestionClassType, queryable_type: st
         "query_variables": query_variables
     }
 
+def format_type(type_str: str) -> str:
+    """Format the type string to a more readable format."""
+    # Handle generic types
+    generic_type_pattern = re.compile(r'([\w\.]+)\[([\w\., ]+)\]')
+    match = generic_type_pattern.match(type_str)
+    if match:
+        base_type = match.group(1).split('.')[-1]
+        arg_types = ', '.join([arg.split('.')[-1] for arg in match.group(2).split(', ')])
+        return f'{base_type}[{arg_types}]'
+
+    # Handle simple types
+    simple_type_pattern = re.compile(r"<class '([\w\.]+)'>")
+    match = simple_type_pattern.match(type_str)
+    if match:
+        return match.group(1).split('.')[-1]
+
+    return type_str
+
 @handle_exceptions
 def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str) -> List[Dict[str, str]]:
     cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
@@ -130,16 +149,22 @@ def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClass
 
     # Convert types to strings
     algo_variables = [
-        {"name": var["name"], "type": str(var["type"])}
+        {"name": var["name"], "type": format_type(str(var["type"]))}
         for var in variable_annotations["algo_variables"]
     ]
     query_variables = [
-        {"name": var["name"], "type": str(var["type"])}
+        {"name": var["name"], "type": format_type(str(var["type"]))}
         for var in variable_annotations["query_variables"]
     ]
 
     return algo_variables + query_variables
 
+def get_all_subclasses(cls) -> List[str]:
+    """Recursively get all subclasses of a given class."""
+    subclasses = set(cls.__subclasses__())
+    for subclass in cls.__subclasses__():
+        subclasses.update(get_all_subclasses(subclass))
+    return [subclass.__name__ for subclass in subclasses]
 
 def shuffle_data(data: Any) -> Any:
     """Shuffle the data based on its type."""
@@ -159,12 +184,11 @@ def shuffle_data(data: Any) -> Any:
 
 
 @handle_exceptions
-def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str, number_of_options: int, question_description: str) -> Dict[str, Any]:
+def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str, quantifiables: Dict[str, str], number_of_options: int, question_description: str) -> Dict[str, Any]:
     cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
     cls_instance = cls()
     query_result = cls_instance.query_all()
     result = {}
-
     variable_annotations = get_variable_annotations(cls, queryable_type)
     algo_variables = variable_annotations["algo_variables"]
     query_variables = variable_annotations["query_variables"]

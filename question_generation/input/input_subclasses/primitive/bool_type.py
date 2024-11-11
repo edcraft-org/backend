@@ -2,7 +2,18 @@ from faker import Faker
 from question_generation.input.input_class import Input
 from typing import Any, Dict, List
 
-class BoolInput(Input):
+from question_generation.quantifiable.quantifiable_class import Quantifiable
+
+class BoolInput(Input, Quantifiable):
+    def __init__(self, value: bool = None, options: Dict[str, Any] = {}):
+        if value is None:
+            self._value = self.generate_input(options)
+        else:
+            self._value = value
+
+    def value(self) -> bool:
+        return self._value
+
     def generate_input(self, options: Dict[str, Any] = {}) -> bool:
         """
         Generate input data for the algorithm.
