@@ -11,6 +11,7 @@ from question_generation.algo.algo import Algo
 from question_generation.queryable.queryable_class import Queryable
 from question_generation.question.question import Question
 from utils.faker_helper import generate_data_for_type
+from copy import deepcopy
 
 GeneratedQuestionClassType = Union[Type[Algo], Type[Question], Type[Queryable]]
 
@@ -159,12 +160,6 @@ def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClass
 
     return algo_variables + query_variables
 
-def get_all_subclasses(cls) -> List[str]:
-    """Recursively get all subclasses of a given class."""
-    subclasses = set(cls.__subclasses__())
-    for subclass in cls.__subclasses__():
-        subclasses.update(get_all_subclasses(subclass))
-    return [subclass.__name__ for subclass in subclasses]
 
 def shuffle_data(data: Any) -> Any:
     """Shuffle the data based on its type."""
@@ -194,15 +189,16 @@ def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionC
     query_variables = variable_annotations["query_variables"]
 
     algo_generated_data = {
-        var["name"]: generate_data_for_type(var["type"])
+        var["name"]: generate_data_for_type(var["type"], quantifiables.get(var["name"]))
         for var in algo_variables
     }
-    cls_instance.algo(**algo_generated_data)
+    print(algo_generated_data)
+    cls_instance.algo(**deepcopy(algo_generated_data))
 
     for base, query_method in query_result:
         if base.__name__ == queryable_type and issubclass(base, Queryable):
             query_generated_data = {
-                var["name"]: generate_data_for_type(var["type"])
+                var["name"]: generate_data_for_type(var["type"], quantifiables.get(var["name"]))
                 for var in query_variables
             }
 
@@ -212,6 +208,7 @@ def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionC
                     setattr(base_instance, attr, getattr(cls_instance, attr))
 
             query_output = query_method(base_instance, **query_generated_data)
+            print(query_output)
             result = {
                 'answer': str(query_output),
                 'question': cls_instance.format_question_description(question_description, {**algo_generated_data, **query_generated_data}),

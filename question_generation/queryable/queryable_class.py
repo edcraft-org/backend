@@ -1,7 +1,8 @@
 from typing import Any, List, Tuple
 
 class Queryable:
-    variable: str = "variable"
+    def __init__(self):
+        self.variable: str = "variable"
 
     def query(self, *args, **kwargs) -> Any:
         return getattr(self, self.variable)

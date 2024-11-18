@@ -5,8 +5,9 @@ from models import GenerateQuestionRequest
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from question_generation.algo.algo import Algo
+from utils.classes_helper import get_all_subclasses
 from utils.question_generation_helper import (
-    autoload_classes, generate_question, get_all_subclasses,
+    autoload_classes, generate_question,
     list_queryable, list_subtopics, list_topics, list_variable,
     GeneratedQuestionClassType
 )
@@ -63,7 +64,8 @@ async def list_variables_route(topic: str, subtopic: str, queryable: str, autolo
 @question_generation_router.get("/quantifiables")
 async def list_quantifiables_route() -> List[str]:
     try:
-        return get_all_subclasses(Quantifiable)
+        subclasses = get_all_subclasses(Quantifiable)
+        return [subclass.__name__ for subclass in subclasses]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

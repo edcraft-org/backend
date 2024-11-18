@@ -16,10 +16,7 @@ class ListInput(Input, Quantifiable, Generic[T]):
     def value(self) -> List[Any]:
         return self._value
 
-    def describe(self) -> str:
-        return f"[{', '.join([str(item._value) for item in self._value])}]"
-
-    def generate_input(self, options: Dict[str, Any] = {}) -> List[T]:
+    def generate_input(self, options: Dict[str, Any] = {}) -> List[Any]:
         """
         Generate input data for the algorithm.
 
@@ -28,10 +25,9 @@ class ListInput(Input, Quantifiable, Generic[T]):
                 - length (int): The length of the list.
 
         Returns:
-            List[T]: The generated input data.
+            List[Any]: The generated input data.
         """
-        length = options.get('length', self.length)
-        return [self.element_type() for _ in range(length)]
+        return [self.element_type().value() for _ in range(self.length)]
 
     def generate_options(self, answer: List[Any] = None , options: Dict[str, Any] = {}) -> List[List[Any]]:
         """
@@ -47,7 +43,7 @@ class ListInput(Input, Quantifiable, Generic[T]):
             List[List[Any]]: The generated options.
         """
         if answer is None:
-            answer = self._value
+            answer = self.generate_input()
 
         num_options = options.get('num_options', 4)
         use_existing = options.get('use_existing', True)
