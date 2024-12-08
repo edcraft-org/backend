@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Any
 from question_generation.queryable.queryable_class import Queryable
 
@@ -9,4 +10,4 @@ class Output(Queryable):
         self.out: Any = None
 
     def output(self, output):
-        self.out = output
+        self.out = copy(output)

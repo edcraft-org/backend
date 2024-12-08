@@ -8,18 +8,13 @@ from question_generation.question.question import Question
 
 
 class InsertionSortClass(Algo, Question, Output, Step):
-    def __init__(self):
-        super().__init__()
-
     def algo(self, input: ListInput[Quantifiable]):
-        ls = input.value()
-        print(ls)
-        for i in range(1, len(ls)):
-            key = ls[i]
+        for i in range(1, len(input)):
+            key = input[i]
             j = i - 1
-            while j >= 0 and key < ls[j]:
-                ls[j + 1] = ls[j]
+            while j >= 0 and key < input[j]:
+                input[j + 1] = input[j]
                 j -= 1
-            ls[j + 1] = key
-            self.step(deepcopy(ls))
-        self.output(deepcopy(ls))
+            input[j + 1] = key
+            self.step(input)
+        self.output(input)

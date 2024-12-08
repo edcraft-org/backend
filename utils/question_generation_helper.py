@@ -1,224 +1,101 @@
-import copy
-import importlib
-import inspect
-from functools import wraps
-from pathlib import Path
-import random
-import re
-from typing import Any, Dict, List, Type, Union
-from fastapi import HTTPException
-from question_generation.algo.algo import Algo
-from question_generation.queryable.queryable_class import Queryable
-from question_generation.question.question import Question
-from utils.faker_helper import generate_data_for_type
+import ast
 from copy import deepcopy
+import random
+from typing import Any, Dict, List, Optional
 
-GeneratedQuestionClassType = Union[Type[Algo], Type[Question], Type[Queryable]]
-
-def handle_exceptions(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error in {func.__name__}: {str(e)}")
-    return wrapper
+from question_generation.queryable.queryable_class import Queryable
+from utils.faker_helper import generate_data_for_type
+from utils.types_helper import GeneratedQuestionClassType
+from utils.classes_helper import get_all_subclasses, get_matching_class, get_subtopic_class
+from utils.exceptions import handle_exceptions
+from utils.variable_helper import get_variable_annotations
 
 
 @handle_exceptions
-def get_topics(base_path: str) -> List[str]:
-    """Get all topics (folder names) inside the base path."""
-    return [p.name for p in Path(base_path).iterdir() if p.is_dir() and not p.name.startswith('__')]
-
-
-@handle_exceptions
-def get_subtopics(topic_path: str) -> List[str]:
-    """Get all subtopics (file names) inside the topic path."""
-    return [p.name for p in Path(topic_path).glob('*.py') if p.name != '__init__.py']
-
-
-@handle_exceptions
-def get_class_from_module(module_name: str) -> GeneratedQuestionClassType:
-    """Get all classes inside the module."""
-    module = importlib.import_module(module_name)
-    for name, obj in inspect.getmembers(module, inspect.isclass):
-        if obj.__module__ == module_name:
-            return obj
-    raise ValueError(f"No class found in module {module_name}")
-
-
-@handle_exceptions
-def autoload_classes(base_path: str, base_package: str) -> Dict[str, Dict[str, GeneratedQuestionClassType]]:
-    """Autoload classes from the algorithm folder."""
-    autoloaded_classes = {}
-    topics = get_topics(base_path)
-
-    for topic in topics:
-        topic_path = Path(base_path) / topic
-        subtopics = get_subtopics(str(topic_path))
-        autoloaded_classes[topic] = {}
-
-        for subtopic in subtopics:
-            module_name = f"{base_package}.{topic}.{subtopic[:-3]}"  # Remove .py extension
-            cls = get_class_from_module(module_name)
-            autoloaded_classes[topic][subtopic[:-3]] = cls
-
-    return autoloaded_classes
-
-
-@handle_exceptions
-def list_topics(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]]) -> List[str]:
-    """Return a list of all topics."""
-    return list(autoloaded_classes.keys())
-
-
-@handle_exceptions
-def list_subtopics(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str) -> List[str]:
-    """Return a list of all subtopics for a given topic."""
-    if topic in autoloaded_classes:
-        return list(autoloaded_classes[topic].keys())
-    else:
-        raise ValueError(f"Topic '{topic}' not found in autoloaded classes.")
-
-
-@handle_exceptions
-def get_subtopic_class(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str) -> GeneratedQuestionClassType:
-    """Return class for a given subtopic."""
-    if topic in autoloaded_classes and subtopic in autoloaded_classes[topic]:
-        return autoloaded_classes[topic][subtopic]
-    else:
-        raise ValueError(f"Subtopic '{subtopic}' not found in autoloaded classes for topic '{topic}'.")
-
-
-@handle_exceptions
-def list_queryable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str) -> List[str]:
-    cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
-    queryable_classes = [base.__name__ for base in cls.__bases__ if issubclass(base, Queryable)]
-    return queryable_classes
-
-def get_variable_annotations(cls: GeneratedQuestionClassType, queryable_type: str) -> Dict[str, List[Dict[str, Any]]]:
-    """Get variable annotations for algo and query methods."""
-    # Get variables from the algo method
-    algo_signature = inspect.signature(cls().algo)
-    algo_variables = [
-        {"name": param_name, "type": param.annotation}
-        for param_name, param in algo_signature.parameters.items()
-        if param_name != 'self'
-    ]
-
-    # Get variables from the query methods
-    queryable_methods = cls().query_all()
-    query_variables = []
-    for base, query_method in queryable_methods:
-        if base.__name__ == queryable_type and issubclass(base, Queryable):
-            signature = inspect.signature(query_method)
-            query_variables.extend(
-                {"name": param_name, "type": param.annotation}
-                for param_name, param in signature.parameters.items()
-                if param_name != 'self' and param.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-            )
-
-    return {
-        "algo_variables": algo_variables,
-        "query_variables": query_variables
-    }
-
-def format_type(type_str: str) -> str:
-    """Format the type string to a more readable format."""
-    # Handle generic types
-    generic_type_pattern = re.compile(r'([\w\.]+)\[([\w\., ]+)\]')
-    match = generic_type_pattern.match(type_str)
-    if match:
-        base_type = match.group(1).split('.')[-1]
-        arg_types = ', '.join([arg.split('.')[-1] for arg in match.group(2).split(', ')])
-        return f'{base_type}[{arg_types}]'
-
-    # Handle simple types
-    simple_type_pattern = re.compile(r"<class '([\w\.]+)'>")
-    match = simple_type_pattern.match(type_str)
-    if match:
-        return match.group(1).split('.')[-1]
-
-    return type_str
-
-@handle_exceptions
-def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str) -> List[Dict[str, str]]:
-    cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
-    variable_annotations = get_variable_annotations(cls, queryable_type)
-
-    # Convert types to strings
-    algo_variables = [
-        {"name": var["name"], "type": format_type(str(var["type"]))}
-        for var in variable_annotations["algo_variables"]
-    ]
-    query_variables = [
-        {"name": var["name"], "type": format_type(str(var["type"]))}
-        for var in variable_annotations["query_variables"]
-    ]
-
-    return algo_variables + query_variables
-
-
-def shuffle_data(data: Any) -> Any:
-    """Shuffle the data based on its type."""
-    if isinstance(data, list):
-        random.shuffle(data)
-        return data
-    elif isinstance(data, tuple):
-        temp_list = list(data)
-        random.shuffle(temp_list)
-        return tuple(temp_list)
-    elif isinstance(data, dict):
-        keys = list(data.keys())
-        random.shuffle(keys)
-        return {key: data[key] for key in keys}
-    else:
-        raise ValueError(f"Unsupported data type for shuffling: {type(data)}")
-
-
-@handle_exceptions
-def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str, quantifiables: Dict[str, str], number_of_options: int, question_description: str) -> Dict[str, Any]:
+def generate_question(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str, element_type: Dict[str, str], subclasses: Dict[str, str], number_of_options: int, question_description: str) -> Dict[str, Any]:
     cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
     cls_instance = cls()
-    query_result = cls_instance.query_all()
-    result = {}
     variable_annotations = get_variable_annotations(cls, queryable_type)
     algo_variables = variable_annotations["algo_variables"]
     query_variables = variable_annotations["query_variables"]
+    # Modify algo_variables with subclass name and class
+    for var in algo_variables:
+        if var["name"] in subclasses:
+            var["type"] = get_matching_class(get_all_subclasses(var["type"]), subclasses[var["name"]])
+    algo_generated_data = generate_data(algo_variables, element_type)
 
-    algo_generated_data = {
-        var["name"]: generate_data_for_type(var["type"], quantifiables.get(var["name"]))
-        for var in algo_variables
-    }
-    print(algo_generated_data)
+    result = {}
+    result['answer'], query_generated_data = process_query_result(cls_instance, algo_generated_data, queryable_type, element_type, query_variables)
+    result['question'] = cls_instance.format_question_description(question_description, {**algo_generated_data, **query_generated_data})
+
+    # Generate options for algo variables
+    options = []
+    options.append(result['answer'])
+    for _ in range(number_of_options - 1):
+        options.append(generate_options(cls_instance, algo_generated_data, queryable_type, element_type, query_variables, result['answer']))
+
+    result['options'] = options
+
+    # Check if the input or problem variable has a to_graph method and generate SVG if it does
+    svg_content = generate_svg(algo_generated_data)
+    if svg_content:
+        result['svg'] = svg_content
+
+    return result
+
+def process_query_result(cls_instance, algo_generated_data, queryable_type, element_type, query_variables):
     cls_instance.algo(**deepcopy(algo_generated_data))
-
+    query_result = cls_instance.query_all()
     for base, query_method in query_result:
         if base.__name__ == queryable_type and issubclass(base, Queryable):
-            query_generated_data = {
-                var["name"]: generate_data_for_type(var["type"], quantifiables.get(var["name"]))
-                for var in query_variables
-            }
+            query_generated_data = generate_data(query_variables, element_type)
+            query_base, query_method = base, query_method
+            base_instance = query_base()
+            copy_attributes(cls_instance, base_instance)
+            query_output = query_method(base_instance, **deepcopy(query_generated_data))
+            return str(query_output), query_generated_data
 
-            base_instance = base()
-            for attr in dir(cls_instance):
-                if not attr.startswith('__') and hasattr(base_instance, attr) and attr != 'variable':
-                    setattr(base_instance, attr, getattr(cls_instance, attr))
+def generate_data(variables: list, element_type: Dict[str, str]) -> Dict[str, Any]:
+    return {
+        var["name"]: generate_data_for_type(
+          var['type'],
+          element_type.get(var["name"])
+        )
+        for var in variables
+    }
 
-            query_output = query_method(base_instance, **query_generated_data)
-            print(query_output)
-            result = {
-                'answer': str(query_output),
-                'question': cls_instance.format_question_description(question_description, {**algo_generated_data, **query_generated_data}),
-                'options': []
-            }
-            options = []
-            for _ in range(number_of_options - 1):
-                option = shuffle_data(copy.deepcopy(query_output))
-                options.append(str(option))
-            options.append(result['answer'])
-            random.shuffle(options)
-            result["options"] = options
-    return result
+def copy_attributes(source_instance: Any, target_instance: Any) -> None:
+    for attr in dir(source_instance):
+        if not attr.startswith('__') and hasattr(target_instance, attr) and attr != 'variable':
+            setattr(target_instance, attr, getattr(source_instance, attr))
+
+def generate_options(cls_instance, algo_generated_data, queryable_type, element_type, query_variables, query_answer):
+    option_data = deepcopy(algo_generated_data)
+    for var_name, var_value in option_data.items():
+            if hasattr(var_value, 'generate_options') and callable(getattr(var_value, 'generate_options')):
+                option_instance = var_value.generate_options()
+                option_data[var_name] = option_instance
+    query_result_option, _ = process_query_result(cls_instance, option_data, queryable_type, element_type, query_variables)
+    if str(query_result_option) == query_answer:
+        opt = ast.literal_eval(query_answer)
+        random.shuffle(opt)
+        if isinstance(opt, list):
+            random.shuffle(opt)
+            return str(opt)
+    return query_result_option
+
+def generate_svg(algo_generated_data) -> Optional[str]:
+    """
+    Generate a Graphviz representation in SVG format if the instance has a to_graph method.
+
+    Args:
+        instance (Any): The instance to generate the SVG for.
+
+    Returns:
+        Optional[str]: The SVG content if available, otherwise None.
+    """
+    instance = algo_generated_data.get('input') or algo_generated_data.get('problem')
+
+    if instance and hasattr(instance, 'to_graph') and callable(getattr(instance, 'to_graph')):
+        return instance.to_graph()
+    return None

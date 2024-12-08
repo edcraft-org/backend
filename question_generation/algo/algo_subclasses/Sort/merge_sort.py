@@ -7,20 +7,16 @@ from question_generation.queryable.queryable_subclasses.output import Output
 from question_generation.queryable.queryable_subclasses.step import Step
 from question_generation.question.question import Question
 
+
 class MergeSortClass(Algo, Question, Output, Step):
-    def __init__(self):
-        super().__init__()
-
     def algo(self, input: ListInput[Quantifiable]):
-        ls = input.value()
-
         def merge_sort(arr: List[Any], left: int, right: int):
             if left < right:
                 mid = (left + right) // 2
                 merge_sort(arr, left, mid)
                 merge_sort(arr, mid + 1, right)
                 merge(arr, left, mid, right)
-                self.step(deepcopy(arr))
+                self.step(arr)
 
         def merge(arr: List[Any], left: int, mid: int, right: int):
             n1 = mid - left + 1
@@ -51,5 +47,5 @@ class MergeSortClass(Algo, Question, Output, Step):
                 j += 1
                 k += 1
 
-        merge_sort(ls, 0, len(ls) - 1)
-        self.output(deepcopy(ls))
+        merge_sort(input, 0, len(input) - 1)
+        self.output(input)

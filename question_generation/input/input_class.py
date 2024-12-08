@@ -15,15 +15,15 @@ class Input(ABC):
         """
         raise NotImplementedError("Method 'generate_input' is not implemented")
 
-    def generate_options(self, answer: Any, options: Dict[str, Any] = {}) -> List[Any]:
+    def generate_options(self, options: Dict[str, Any] = {}) -> List[Any]:
         """
         Generate options for generating input data.
 
         Args:
-            answer (Any): The answer for the input data.
             options (Dict[str, Any]): Options for generating input.
 
         Returns:
-            List[Any]: The generated options.
+            Any: The generated option.
         """
-        raise NotImplementedError("Method 'generate_options' is not implemented")
+
+        return self.__class__(options=options)

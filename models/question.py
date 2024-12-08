@@ -10,6 +10,7 @@ class Question(Document):
     answer: str
     user_id: str
     marks: float = Field(..., description="The marks assigned to the question")
+    svg: Optional[str] = Field(None, description="The SVG representation of the question")
 
     class Settings:
         name = "questions"
@@ -21,3 +22,4 @@ class QuestionCreate(BaseModel):
     answer: str = Field(..., description="The correct answer for the question")
     user_id: str = Field(..., description="The ID of the user who created the question")
     marks: float = Field(..., description="The marks assigned to the question")
+    svg: Optional[str] = Field(None, description="The SVG representation of the question")

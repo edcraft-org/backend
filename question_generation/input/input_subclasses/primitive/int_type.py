@@ -4,56 +4,18 @@ from question_generation.input.input_class import Input
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from utils.constants import MIN_VALUE, MAX_INT_VALUE
 
-class IntInput(Input, Quantifiable):
-    def __init__(self, value: int = None, options: Dict[str, Any] = {}):
-        if value is None:
-            self._value = self.generate_input(options)
-        else:
-            self._value = value
+fake = Faker()
 
-    def value(self) -> int:
-        return self._value
+class IntInput(int, Input, Quantifiable):
+    # Since int is immutable, initialization happens during object creation (__new__), not in __init__
+    def __new__(cls, value: int = None, options: Dict[str, Any] = {}):
+        if value is None:
+            value = cls.generate_input(cls, options)
+        instance = super().__new__(cls, value)
+        instance._value = value
+        return instance
 
     def generate_input(self, options: Dict[str, Any] = {}) -> int:
-        """
-        Generate input data for the algorithm.
-
-        Args:
-            options (Dict[str, Any]): Additional options for generating input, including:
-                - min_value (int): The minimum value for the input.
-                - max_value (int): The maximum value for the input.
-
-        Returns:
-            int: The generated input data.
-        """
         min_value = options.get('min_value', MIN_VALUE)
         max_value = options.get('max_value', MAX_INT_VALUE)
-
-        fake = Faker()
         return fake.random_int(min=min_value, max=max_value)
-
-    def generate_options(self, answer: int, options: Dict[str, Any] = {}) -> List[int]:
-        """
-        Generate options for generating input data.
-
-        Args:
-            answer (int): The answer for the input data.
-            options (Dict[str, Any]): Options for generating input.
-
-        Returns:
-            List[int]: The generated options.
-        """
-        num_options = options.get('num_options', 4)
-        min_value = options.get('min_value', MIN_VALUE)
-        max_value = options.get('max_value', MAX_INT_VALUE)
-
-        fake = Faker()
-        generated_options = set()
-        generated_options.add(answer)
-
-        while len(generated_options) < num_options:
-            option = fake.random_int(min=min_value, max=max_value)
-            if option != answer:
-                generated_options.add(option)
-
-        return list(generated_options)

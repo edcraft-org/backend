@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Any
 from question_generation.queryable.queryable_class import Queryable
 
@@ -9,11 +10,11 @@ class Step(Queryable):
         self.history: list = []
 
     def query(self, step: int) -> Any:
-        states = getattr(self, self.variable)
-        print(states)
-        if step - 1 < len(states):
+        states = super().query()
+        try:
             return states[step - 1]
-        return None
+        except IndexError:
+            return None
 
     def step(self, state: Any):
-        self.history.append(state)
+        self.history.append(copy(state))

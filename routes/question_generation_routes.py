@@ -1,16 +1,14 @@
 from pathlib import Path
-from typing import Dict, List, Type
+from typing import Any, Dict, List, Type
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
-from question_generation.algo.algo import Algo
-from utils.classes_helper import get_all_subclasses
-from utils.question_generation_helper import (
-    autoload_classes, generate_question,
-    list_queryable, list_subtopics, list_topics, list_variable,
-    GeneratedQuestionClassType
-)
+from utils.classes_helper import autoload_classes, get_subclasses_name
+from utils.question_generation_helper import generate_question
+from utils.variable_helper import list_variable
+from utils.topics_helper import list_queryable, list_subtopics, list_topics
+from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
 
@@ -53,7 +51,7 @@ async def get_queryable_classes_route(queryable_classes: Dict[str, Type[Queryabl
         raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.get("/topics/{topic}/subtopics/{subtopic}/queryables/{queryable}/variables")
-async def list_variables_route(topic: str, subtopic: str, queryable: str, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> List[Dict[str, str]]:
+async def list_variables_route(topic: str, subtopic: str, queryable: str, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> List[Dict[str, Any]]:
     try:
         return list_variable(autoloaded_classes, topic, subtopic, queryable)
     except ValueError as e:
@@ -64,8 +62,7 @@ async def list_variables_route(topic: str, subtopic: str, queryable: str, autolo
 @question_generation_router.get("/quantifiables")
 async def list_quantifiables_route() -> List[str]:
     try:
-        subclasses = get_all_subclasses(Quantifiable)
-        return [subclass.__name__ for subclass in subclasses]
+        return get_subclasses_name(Quantifiable)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -76,7 +73,7 @@ async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: D
         for _ in range(request.number_of_questions):
             generated_question = generate_question(
                 autoloaded_classes, request.topic, request.subtopic,
-                request.queryable, request.quantifiables,
+                request.queryable, request.element_type, request.subclasses,
                 request.number_of_options, request.question_description,
             )
 
