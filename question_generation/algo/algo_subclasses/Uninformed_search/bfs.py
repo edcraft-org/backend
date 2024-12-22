@@ -8,7 +8,6 @@ from question_generation.question.question import Question
 
 class BFSClass(Algo, Question, Output, Step):
     def algo(self, input: Traversable):
-
         explored, steps, q = set(), [], deque([input.get_start()])
         while q:
             v = q.popleft()

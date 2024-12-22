@@ -72,9 +72,15 @@ async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: D
     try:
         for _ in range(request.number_of_questions):
             generated_question = generate_question(
-                autoloaded_classes, request.topic, request.subtopic,
-                request.queryable, request.element_type, request.subclasses,
-                request.number_of_options, request.question_description,
+                autoloaded_classes,
+                request.topic,
+                request.subtopic,
+                request.arguments,
+                request.queryable,
+                request.element_type,
+                request.subclasses,
+                request.number_of_options,
+                request.question_description,
             )
 
             if generated_question is None:

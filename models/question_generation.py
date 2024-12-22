@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 from pydantic import BaseModel
 
 
@@ -8,6 +8,7 @@ class GenerateQuestionRequest(BaseModel):
     queryable: str
     element_type: Dict[str, str]
     subclasses: Dict[str, str]
+    arguments: Dict[str, Any]
     question_description: str
     question_type: str
     marks: float

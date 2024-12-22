@@ -3,3 +3,6 @@ beanie
 Faker
 python-dotenv
 uvicorn
+pandas
+plotly
+kaleido

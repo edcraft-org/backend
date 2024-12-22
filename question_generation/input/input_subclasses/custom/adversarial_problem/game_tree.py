@@ -8,27 +8,25 @@ from question_generation.input.input_subclasses.custom.graph.node_type import No
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 
-T = TypeVar('T', bound=Quantifiable)
+class GameTreeInput(Input, AdversarialProblem):
+    _exposed_args = ['num_children', 'depth']
 
-class GameTreeInput(Input, AdversarialProblem, Generic[T]):
-    def __init__(self, element_type: Type[T] = IntInput, leaves: List[Node] = None, num_children: int = 2, depth: int = 3, options: Dict[str, Any] = {}):
+    def __init__(self, element_type: Type = IntInput, leaves: List[Node] = None, num_children: int = 2, depth: int = 3):
         self._element_type = element_type
         self._num_children = num_children
         self._depth = depth
         self.input_leaves = leaves
         self.leaves = []
         self._leaf_index = 0
-        self._root = self.generate_input(options)
+        self._root = self.generate_input()
 
-    def generate_input(self, options: Dict[str, Any] = {}) -> Node:
+    def generate_input(self) -> Node:
         """
         Generate input data for the Game Tree.
         """
-        if self._element_type == IntInput:
-            options['max_value'] = 100
-        return self.create_game_tree(self._depth, self._num_children, 0, options)
+        return self.create_game_tree(self._depth, self._num_children, 0)
 
-    def create_game_tree(self, depth: int, num_children: int, current_depth: int = 0, options: Dict[str, Any] = {}) -> Node:
+    def create_game_tree(self, depth: int, num_children: int, current_depth: int = 0) -> Node:
         """
         Recursively create a game tree with specified depth and branching factor.
         """
@@ -39,12 +37,12 @@ class GameTreeInput(Input, AdversarialProblem, Generic[T]):
                 leaf = Node(self._element_type, value=leaf_value)
                 self.leaves.append(leaf_value)
             else:
-                leaf = Node(self._element_type, options)
+                leaf = Node(self._element_type)
                 self.leaves.append(leaf.value())
             return leaf
 
         # Internal node with children
-        children = [self.create_game_tree(depth, num_children, current_depth + 1, options) for _ in range(num_children)]
+        children = [self.create_game_tree(depth, num_children, current_depth + 1) for _ in range(num_children)]
         return Node(children=children)
 
     def get_state(self) -> Node:
@@ -113,20 +111,16 @@ class GameTreeInput(Input, AdversarialProblem, Generic[T]):
                 graph.edge(str(id(node)), str(id(child)), arrowhead='none')
                 self._add_nodes_edges(graph, child, level + 1)
 
-    def generate_options(self, options: Dict[str, Any] = {}) -> 'GameTreeInput':
+    def generate_options(self) -> 'GameTreeInput':
         """
         Generate options for the game tree by shuffling the leaves.
-
-        Args:
-            options (Dict[str, Any]): Options for generating input, including:
-                - num_options (int): The number of options to generate.
 
         Returns:
             List[GameTreeInput]: The generated options.
         """
         shuffled_leaves = self.leaves[:]
         random.shuffle(shuffled_leaves)
-        return self.__class__(element_type=self._element_type, leaves=shuffled_leaves, num_children=self._num_children, depth=self._depth, options=options)
+        return self.__class__(element_type=self._element_type, leaves=shuffled_leaves, num_children=self._num_children, depth=self._depth)
 
     def __str__(self):
         """

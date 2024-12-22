@@ -9,12 +9,14 @@ from graphviz import Digraph
 T = TypeVar('T', bound=Quantifiable)
 
 class AdjacencyListInput(Input, Traversable, Generic[T]):
-    def __init__(self, node_labels: List[Any] = [], element_type: Type[T] = IntInput, num_nodes: int = None, num_edges: int = None, options: Dict[str, Any] = {}):
+    _exposed_args = ['num_nodes', 'num_edges']
+
+    def __init__(self, node_labels: List[Any] = [], element_type: Type[T] = IntInput, num_nodes: int = 7, num_edges: int = 6):
         self.element_type = element_type
-        self.num_nodes = num_nodes if num_nodes is not None else options.get('num_nodes', 7)
-        self.num_edges = num_edges if num_edges is not None else options.get('num_edges', 6)
+        self.num_nodes = num_nodes
+        self.num_edges = num_edges
         self.node_labels = []
-        self._value = self.generate_input(options)
+        self._value = self.generate_input()
 
     def get_neighbors(self, node: Any) -> List[Any]:
         return self._value.get(node, [])
@@ -24,14 +26,9 @@ class AdjacencyListInput(Input, Traversable, Generic[T]):
             return self.node_labels[0]
         return None
 
-    def generate_input(self, options: Dict[str, Any] = {}) -> Dict[Any, List[Any]]:
+    def generate_input(self) -> Dict[Any, List[Any]]:
         """
         Generate input data for the Adjacency List.
-
-        Args:
-            options (Dict[str, Any]): Additional options for generating input, including:
-                - num_nodes (int): The number of nodes in the Adjacency List.
-                - num_edges (int): The number of edges in the Adjacency List.
 
         Returns:
             Dict[Any, List[Any]]: The generated adjacency list representing the Adjacency List.
@@ -56,21 +53,14 @@ class AdjacencyListInput(Input, Traversable, Generic[T]):
                     break
         return adjacency_list
 
-    def generate_options(self, options: Dict[str, Any] = {}) -> 'AdjacencyListInput':
+    def generate_options(self) -> 'AdjacencyListInput':
 
         """
         Generate options for generating input data.
-
-        Args:
-            options (Dict[str, Any]): Options for generating input, including:
-                - num_options (int): The number of options to generate.
-
-        Returns:
-            List[Dict[Any, List[Any]]]: The generated options.
         """
         shuffled_labels = self.node_labels[:]
         random.shuffle(shuffled_labels)
-        return self.__class__(node_labels=shuffled_labels, element_type=self.element_type, num_nodes=self.num_nodes, num_edges=self.num_edges, options=options)
+        return self.__class__(node_labels=shuffled_labels, element_type=self.element_type, num_nodes=self.num_nodes, num_edges=self.num_edges)
 
     def to_graph(self) -> str:
         """

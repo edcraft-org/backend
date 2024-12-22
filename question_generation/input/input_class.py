@@ -3,27 +3,21 @@ from typing import Any, Dict, List
 
 
 class Input(ABC):
-    def generate_input(self, options: Dict[str, Any] = {}) -> Any:
+    def generate_input(self) -> Any:
         """
         Generate input data for the algorithm.
-
-        Args:
-            options (Dict[str, Any]): Options for generating input.
 
         Returns:
             Any: The generated input data.
         """
         raise NotImplementedError("Method 'generate_input' is not implemented")
 
-    def generate_options(self, options: Dict[str, Any] = {}) -> List[Any]:
+    def generate_options(self) -> List[Any]:
         """
         Generate options for generating input data.
-
-        Args:
-            options (Dict[str, Any]): Options for generating input.
 
         Returns:
             Any: The generated option.
         """
 
-        return self.__class__(options=options)
+        return self.__class__()

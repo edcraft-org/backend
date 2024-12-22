@@ -8,14 +8,12 @@ fake = Faker()
 
 class IntInput(int, Input, Quantifiable):
     # Since int is immutable, initialization happens during object creation (__new__), not in __init__
-    def __new__(cls, value: int = None, options: Dict[str, Any] = {}):
+    def __new__(cls, value: int = None, max: int = MAX_INT_VALUE, min: int = MIN_VALUE):
         if value is None:
-            value = cls.generate_input(cls, options)
+            value = cls.generate_input(cls, max, min)
         instance = super().__new__(cls, value)
         instance._value = value
         return instance
 
-    def generate_input(self, options: Dict[str, Any] = {}) -> int:
-        min_value = options.get('min_value', MIN_VALUE)
-        max_value = options.get('max_value', MAX_INT_VALUE)
-        return fake.random_int(min=min_value, max=max_value)
+    def generate_input(self, max: int = MAX_INT_VALUE, min: int = MIN_VALUE) -> int:
+        return fake.random_int(min=min, max=max)

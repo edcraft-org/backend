@@ -1,15 +1,15 @@
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 from question_generation.input.input_class import Input
+from question_generation.input.input_subclasses.primitive.int_type import IntInput
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 
 T = TypeVar('T', bound=Quantifiable)
 
 class Node(Input, Quantifiable, Generic[T]):
-    def __init__(self, element_type: Optional[Type[T]] = None, options: Dict[str, Any] = {}, value=None, children=None):
+    def __init__(self, element_type: Optional[Type[T]] = IntInput, value=None, children=None):
         """
         Initialize a node in the tree.
         :param element_type: Type of element (e.g., IntInput) that the node will store.
-        :param options: Optional options affecting the node's value or behavior.
         :param value: Value for terminal nodes. Used when the node is terminal.
         :param children: List of child nodes for internal nodes.
         """
@@ -19,7 +19,10 @@ class Node(Input, Quantifiable, Generic[T]):
         if value is not None:
             self._value = value  # Terminal node with a predefined value
         elif self.element_type is not None:
-            self._value = self.element_type(options=options).value()  # Generate value based on element type
+            if self.element_type == IntInput:
+                self._value = self.element_type(max = 100).value()
+            else:
+                self._value = self.element_type().value()  # Generate value based on element type
         else:
             self._value = None  # Default value is None, used for non-terminal nodes
 
