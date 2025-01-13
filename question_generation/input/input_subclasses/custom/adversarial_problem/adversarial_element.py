@@ -1,12 +1,12 @@
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Generic, List, Optional, Type, TypeVar
 from question_generation.input.input_class import Input
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 
 T = TypeVar('T', bound=Quantifiable)
 
-class Node(Input, Quantifiable, Generic[T]):
-    def __init__(self, element_type: Optional[Type[T]] = IntInput, value=None, children=None):
+class AdversarialElement(Input, Quantifiable, Generic[T]):
+    def __init__(self, element_type: Optional[Type[T]] = IntInput, value=None, neighbours=None):
         """
         Initialize a node in the tree.
         :param element_type: Type of element (e.g., IntInput) that the node will store.
@@ -26,19 +26,13 @@ class Node(Input, Quantifiable, Generic[T]):
         else:
             self._value = None  # Default value is None, used for non-terminal nodes
 
-        self.children = children if children is not None else []  # Internal nodes will have children
+        self.neighbours = neighbours if neighbours is not None else []  # Internal nodes will have children
 
-    def get_children(self) -> List['Node']:
-        """
-        Return the children of this node.
-        """
-        return self.children
+    def get_actions(self) -> List['AdversarialElement']:
+        return self.neighbours
 
     def is_terminal(self) -> bool:
-        """
-        Determine if the node is terminal (has no children).
-        """
-        return len(self.children) == 0
+        return len(self.neighbours) == 0
 
     def value(self) -> float:
         """
@@ -49,12 +43,9 @@ class Node(Input, Quantifiable, Generic[T]):
         raise ValueError("Cannot retrieve value from a non-terminal node without a value.")
 
     def __str__(self) -> str:
-        """
-        String representation of the node. If terminal, shows its value; otherwise shows children count.
-        """
         if self.is_terminal():
-            return f"Terminal Node with value {self._value}"
-        return f"Internal Node with {len(self.children)} children"
+            return f"Terminal Element with value {self._value}"
+        return f"Internal Element with {len(self.neighbours)} neighbours"
 
     def __repr__(self) -> str:
         return self.__str__()

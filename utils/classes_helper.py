@@ -3,9 +3,8 @@ import importlib
 from pathlib import Path
 from typing import Dict, List, Type
 
-from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_problem import AdversarialProblem
-from question_generation.input.input_subclasses.custom.traversable.adjacency_list import AdjacencyListInput
-from question_generation.input.input_subclasses.custom.traversable.traversable import Traversable
+from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_env import AdversarialEnv
+from question_generation.input.input_subclasses.custom.graph.adjacency_list import AdjacencyListInput
 from utils.path_helper import get_subtopics, get_topics
 from utils.types_helper import GeneratedQuestionClassType
 from utils.exceptions import handle_exceptions

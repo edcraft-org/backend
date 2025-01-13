@@ -1,82 +1,56 @@
 import random
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import List, Type
 
 from graphviz import Digraph
 from question_generation.input.input_class import Input
-from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_problem import AdversarialProblem
-from question_generation.input.input_subclasses.custom.graph.node_type import Node
+from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_element import AdversarialElement
+from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_env import AdversarialEnv
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
-from question_generation.quantifiable.quantifiable_class import Quantifiable
 
-class GameTreeInput(Input, AdversarialProblem):
+class GameTreeInput(AdversarialEnv, Input):
     _exposed_args = ['num_children', 'depth']
 
-    def __init__(self, element_type: Type = IntInput, leaves: List[Node] = None, num_children: int = 2, depth: int = 3):
-        self._element_type = element_type
-        self._num_children = num_children
-        self._depth = depth
-        self.input_leaves = leaves
-        self.leaves = []
+    def __init__(self, element_type: Type = IntInput, leaves: List[AdversarialElement] = None, num_children: int = 3, depth: int = 2):
+        self.element_type = element_type
+        self.num_children = num_children
+        self.depth = depth
+        self.leaves = leaves if leaves is not None else []
         self._leaf_index = 0
-        self._root = self.generate_input()
+        self.initial = self.generate_input()
 
-    def generate_input(self) -> Node:
+    def generate_input(self) -> AdversarialElement:
         """
         Generate input data for the Game Tree.
         """
-        return self.create_game_tree(self._depth, self._num_children, 0)
+        if self.leaves:
+            return self.create_game_tree_from_leaves(self.depth, self.num_children, 0)
+        else:
+            return self.create_game_tree_from_scratch(self.depth, self.num_children, 0)
 
-    def create_game_tree(self, depth: int, num_children: int, current_depth: int = 0) -> Node:
+    def create_game_tree_from_scratch(self, depth: int, num_children: int, current_depth: int = 0) -> AdversarialElement:
         """
-        Recursively create a game tree with specified depth and branching factor.
+        Recursively create a game tree with specified depth and branching factor from scratch.
         """
-        if current_depth == depth:
-            # Terminal node with a value from leaves if provided, otherwise a random value
-            if self.input_leaves:
-                leaf_value = self.input_leaves.pop(0)
-                leaf = Node(self._element_type, value=leaf_value)
-                self.leaves.append(leaf_value)
-            else:
-                leaf = Node(self._element_type)
-                self.leaves.append(leaf.value())
+        if current_depth + 1 == depth:
+            leaf = AdversarialElement(self.element_type)
+            self.leaves.append(leaf.value())
             return leaf
 
-        # Internal node with children
-        children = [self.create_game_tree(depth, num_children, current_depth + 1) for _ in range(num_children)]
-        return Node(children=children)
+        children = [self.create_game_tree_from_scratch(depth, num_children, current_depth + 1) for _ in range(num_children)]
+        return AdversarialElement(neighbours=children)
 
-    def get_state(self) -> Node:
+    def create_game_tree_from_leaves(self, depth: int, num_children: int, current_depth: int = 0) -> AdversarialElement:
         """
-        Return the root of the game tree.
+        Recursively create a game tree with specified depth and branching factor using existing leaves.
         """
-        return self._root
+        if current_depth + 1 == depth:
+            leaf_value = self.leaves[self._leaf_index]
+            leaf = AdversarialElement(self.element_type, value=leaf_value)
+            self._leaf_index += 1
+            return leaf
 
-    def get_legal_actions(self, state: Node) -> List[Node]:
-        """
-        Return the children of the current node as legal actions.
-        """
-        return state.get_children()
-
-    def apply_action(self, state: Node, action: Node, maximising: bool) -> Node:
-        """
-        Return the child node as the result of applying the action.
-        """
-        return action
-
-    def is_terminal(self, state: Node) -> bool:
-        """
-        Check if the node is a terminal state (i.e., has no children).
-        """
-        return state.is_terminal()
-
-    def evaluate(self, state: Node, maximising: bool) -> float:
-        """
-        Evaluate the value of a terminal node.
-        For non-terminal nodes, evaluation should not occur but can return a placeholder value.
-        """
-        if state.is_terminal():
-            return state.value()
-        raise ValueError("Evaluation called on a non-terminal node.")
+        children = [self.create_game_tree_from_leaves(depth, num_children, current_depth + 1) for _ in range(num_children)]
+        return AdversarialElement(neighbours=children)
 
     def to_graph(self) -> str:
         """
@@ -86,10 +60,10 @@ class GameTreeInput(Input, AdversarialProblem):
             str: The Graphviz representation in SVG format.
         """
         dot = Digraph(format='svg')
-        self._add_nodes_edges(dot, self._root, 0)
+        self._add_nodes_edges(dot, self.initial, 0)
         return dot.pipe().decode('utf-8')
 
-    def _add_nodes_edges(self, graph: Digraph, node: Node, level: int):
+    def _add_nodes_edges(self, graph: Digraph, node: AdversarialElement, level: int):
         """
         Recursively add nodes and edges to the Graphviz graph.
 
@@ -107,7 +81,7 @@ class GameTreeInput(Input, AdversarialProblem):
                 shape = 'triangle' if level % 2 == 0 else 'invtriangle'
 
             graph.node(str(id(node)), label, shape=shape)
-            for child in node.get_children():
+            for child in node.get_actions():
                 graph.edge(str(id(node)), str(id(child)), arrowhead='none')
                 self._add_nodes_edges(graph, child, level + 1)
 
@@ -120,7 +94,7 @@ class GameTreeInput(Input, AdversarialProblem):
         """
         shuffled_leaves = self.leaves[:]
         random.shuffle(shuffled_leaves)
-        return self.__class__(element_type=self._element_type, leaves=shuffled_leaves, num_children=self._num_children, depth=self._depth)
+        return self.__class__(element_type=self.element_type, leaves=shuffled_leaves, num_children=self.num_children, depth=self.depth)
 
     def __str__(self):
         """

@@ -27,8 +27,8 @@ def get_subclasses_info(cls: Type) -> List[Dict[str, Any]]:
     ]
     return subclasses_info
 
-def get_variable_annotations(cls: GeneratedQuestionClassType, queryable_type: str) -> Dict[str, List[Dict[str, Any]]]:
-    """Get variable annotations for algo and query methods."""
+def get_algo_variables(cls: GeneratedQuestionClassType) -> List[Dict[str, Any]]:
+    """Get variable annotations for algo methods."""
     algo_signature = inspect.signature(cls().algo)
     algo_variables = []
 
@@ -43,7 +43,10 @@ def get_variable_annotations(cls: GeneratedQuestionClassType, queryable_type: st
                 var_info["subclasses"] = get_subclasses_info(actual_class)
 
             algo_variables.append(var_info)
+    return algo_variables
 
+def get_query_variables(cls: GeneratedQuestionClassType, queryable_type: str) -> List[Dict[str, Any]]:
+    """Get variable annotations for query methods."""
     queryable_methods = cls().query_all()
     query_variables = []
     for base, query_method in queryable_methods:
@@ -55,10 +58,7 @@ def get_variable_annotations(cls: GeneratedQuestionClassType, queryable_type: st
                 if param_name != 'self' and param.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
             )
 
-    return {
-        "algo_variables": algo_variables,
-        "query_variables": query_variables
-    }
+    return query_variables
 
 def format_type(type_str: str) -> str:
     """Format the type string to a more readable format."""
@@ -79,10 +79,10 @@ def format_type(type_str: str) -> str:
     return type_str
 
 @handle_exceptions
-def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str) -> List[Dict[str, Any]]:
+def list_algo_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str) -> List[Dict[str, Any]]:
     cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
-    variable_annotations = get_variable_annotations(cls, queryable_type)
-    algo_variables = [
+    algo_variables = get_algo_variables(cls)
+    algo_variables_list = [
       {
         "name": var["name"],
         "type": format_type(str(var["type"])),
@@ -107,16 +107,21 @@ def list_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClass
             for arg in var.get("arguments", [])
         ]
       }
-      for var in variable_annotations["algo_variables"]
+      for var in algo_variables
     ]
-    query_variables = [
+    return algo_variables_list
+
+@handle_exceptions
+def list_queryable_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str) -> List[Dict[str, Any]]:
+    cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
+    query_variables = get_query_variables(cls, queryable_type)
+    query_variables_list = [
       {
         "name": var["name"],
         "type": format_type(str(var["type"])),
         "subclasses": [],
         "arguments": []
       }
-      for var in variable_annotations["query_variables"]
+      for var in query_variables
     ]
-
-    return algo_variables + query_variables
+    return query_variables_list

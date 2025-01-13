@@ -23,13 +23,15 @@ def handle_generic_type(data_type: Type, element_type: str, origin: Type, init_a
         raise ValueError(f"Generic type {data_type} has no arguments")
 
     element = args[0]
-    if element:
-        element = get_matching_class(get_all_subclasses(Quantifiable), element_type) or element
 
     input_subclasses = get_all_subclasses(Input)
     matching_class = get_matching_class(input_subclasses, origin.__name__)
     if matching_class:
-        return matching_class(element, **init_args)
+        if element_type:
+            element = get_matching_class(get_all_subclasses(Quantifiable), element_type) or element
+            return matching_class(element, **init_args)
+        else:
+            return matching_class(**init_args)
 
     return generate_collection_data(origin, args, element, element_type, init_args)
 

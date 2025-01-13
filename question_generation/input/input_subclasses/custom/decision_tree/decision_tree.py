@@ -12,11 +12,12 @@ class DecisionTreeInput(Input):
     _exposed_args = ['columns', 'values', 'probs', 'num_samples']
 
     def __init__(self, data: List[Dict[str, Any]] = None, columns: List[str] = None, values: Dict[str, List[Any]] = None, probs: Dict[str, List[float]] = None, num_samples: int = 5):
+        self.data = data if data is not None else []
         self.columns = columns if columns is not None else []
         self.values = values if values is not None else {}
         self.probs = probs if probs is not None else {}
         self.num_samples = num_samples
-        self._value = data if data is not None else self.generate_data()
+        self._value = self.data if self.data else self.generate_data()
         self.root = None
 
     def generate_data(self) -> List[Dict[str, Any]]:
@@ -36,13 +37,14 @@ class DecisionTreeInput(Input):
             if sample_tuple not in seen_samples:
                 seen_samples.add(sample_tuple)
                 generated_data.append(sample)
-
+        self.data = generated_data
         return generated_data
 
     def value(self) -> Any:
         return self._value
 
     def set_root(self, root: Type['DecisionTreeNode']) -> None:
+        print('set root')
         self.root = root
 
     def to_graph(self, tree: Type['DecisionTreeNode'] = None, parent=None, graph=None, node_id=0):
