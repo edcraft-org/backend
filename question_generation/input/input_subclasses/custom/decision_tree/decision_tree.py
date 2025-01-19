@@ -43,28 +43,6 @@ class DecisionTreeInput(Input):
     def value(self) -> Any:
         return self._value
 
-    def set_root(self, root: Type['DecisionTreeNode']) -> None:
-        print('set root')
-        self.root = root
-
-    def to_graph(self, tree: Type['DecisionTreeNode'] = None, parent=None, graph=None, node_id=0):
-        tree = self.root if not tree else tree
-        if tree is None:
-            raise ValueError("The root of the decision tree is not set.")
-
-        node_label = f"{tree.attribute}_{node_id}" if tree.attribute else f"{tree.label}_{node_id}"
-        if graph is None:
-            graph = Digraph(format='svg', engine='dot')
-            graph.node(node_label, f"{tree.attribute}?" if tree.attribute else tree.label, shape='box')
-
-        for value, child in tree.children.items():
-            child_node_label = f"{child.attribute}_{node_id + 1}" if child.attribute else f"{child.label}_{node_id + 1}"
-            child_node_shape = 'box' if child.attribute else 'plaintext'
-            graph.node(child_node_label, f"{child.attribute}?" if child.attribute else child.label, shape=child_node_shape)
-            graph.edge(node_label, child_node_label, label=value)
-            self.to_graph(child, parent=child_node_label, graph=graph, node_id=node_id + 1)
-        return graph.pipe().decode('utf-8')
-
     def to_table(self) -> str:
         """
         Generate an SVG representation of the data in a tabular format using plotly.

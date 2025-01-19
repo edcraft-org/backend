@@ -1,16 +1,17 @@
 import math
 
 from question_generation.algo.algo import Algo
+from question_generation.graph.decision_tree_graph import DecisionTreeGraph
 from question_generation.input.input_subclasses.custom.decision_tree.decision_tree import DecisionTreeInput
 from question_generation.input.input_subclasses.custom.decision_tree.tree_node import DecisionTreeNode
+from question_generation.queryable.queryable_subclasses.output import Output
 from question_generation.queryable.queryable_subclasses.step import Step
 from question_generation.question.question import Question
 
-class DecisionTreeLearningClass(Algo, Question, Step):
+class DecisionTreeLearningClass(Algo, Question, Step, Output):
     def algo(self, problem: DecisionTreeInput) -> None:
         # Dynamically determine the class attribute
         class_attribute = list(problem.value()[0].keys())[-1]
-
         def ID3(examples, default):
             # If examples are empty, return a leaf with the default label
             if not examples:
@@ -50,7 +51,7 @@ class DecisionTreeLearningClass(Algo, Question, Step):
             examples = problem.value()
             classifications = [example[class_attribute] for example in examples]
             decision_tree_root = ID3(examples, max(classifications, key=classifications.count))
-            problem.set_root(decision_tree_root)
+            self.output_graph(decision_tree_root, DecisionTreeGraph())
             print('Decision tree built successfully.')
         except Exception as e:
             print(f"Error generating decision tree: {e}")

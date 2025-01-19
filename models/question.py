@@ -12,6 +12,7 @@ class SubQuestion(BaseModel):
     answer: str = Field(..., description="The correct answer for the subquestion")
     marks: float = Field(..., description="The marks assigned to the subquestion")
     svg: Optional[Dict[str, str]] = Field(None, description="The SVG representations of the subquestion")
+    answer_svg: Optional[Dict[str, str]] = Field(None, description="The SVG representations of the answer")
 
 class Question(Document):
     id: Optional[PydanticObjectId] = Field(None, alias="_id", description="The unique identifier of the question")

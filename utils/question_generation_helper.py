@@ -123,7 +123,7 @@ def generate_subquestion(
         query_variables = get_query_variables(cls, subquestion.queryable)
         sub = {}
         try:
-            sub['answer'], copy_algo_generated_data, query_generated_data = process_query_result(
+            sub['answer'], copy_algo_generated_data, query_generated_data, answer_svg_content = process_query_result(
                 cls_instance,
                 sub_algo_variables,
                 subquestion.queryable,
@@ -162,6 +162,8 @@ def generate_subquestion(
         svg_content = generate_svg(copy_algo_generated_data)
         if svg_content:
             sub['svg'] = svg_content
+        if answer_svg_content:
+            sub['answer_svg'] = answer_svg_content
         return sub
 
     except Exception as e:
@@ -170,6 +172,7 @@ def generate_subquestion(
 
 def process_query_result(cls_instance, algo_generated_data, queryable_type, element_type, query_variables, arguments):
     try:
+        print('query')
         copy_algo_generated_data = deepcopy(algo_generated_data)
         cls_instance.algo(**copy_algo_generated_data)
         query_result = cls_instance.query_all()
@@ -180,7 +183,8 @@ def process_query_result(cls_instance, algo_generated_data, queryable_type, elem
                 base_instance = query_base()
                 copy_attributes(cls_instance, base_instance)
                 query_output = query_method(base_instance, **deepcopy(query_generated_data))
-                return str(query_output), copy_algo_generated_data, query_generated_data
+                value, graph = query_output['value'], query_output['svg']
+                return str(value), copy_algo_generated_data, query_generated_data, graph
     except Exception as e:
         print(f"Error processing query result: {e}")
         return '', {}, {}
@@ -207,7 +211,7 @@ def generate_options(cls, algo_generated_data, queryable_type, element_type, que
         if hasattr(var_value, 'generate_options') and callable(getattr(var_value, 'generate_options')):
             option_instance = var_value.generate_options()
             option_data[var_name] = option_instance
-    query_result_option, _, _ = process_query_result(cls_instance, option_data, queryable_type, element_type, query_variables, arguments)
+    query_result_option, _, _, _ = process_query_result(cls_instance, option_data, queryable_type, element_type, query_variables, arguments)
     if str(query_result_option) == query_answer:
         opt = ast.literal_eval(query_answer)
         if isinstance(opt, list):

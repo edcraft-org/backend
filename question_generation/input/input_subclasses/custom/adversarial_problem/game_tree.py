@@ -1,5 +1,5 @@
 import random
-from typing import List, Type
+from typing import List, Tuple, Type
 
 from graphviz import Digraph
 from question_generation.input.input_class import Input
