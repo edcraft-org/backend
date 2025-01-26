@@ -172,16 +172,18 @@ def generate_subquestion(
 
 def process_query_result(cls_instance, algo_generated_data, queryable_type, element_type, query_variables, arguments):
     try:
-        print('query')
         copy_algo_generated_data = deepcopy(algo_generated_data)
         cls_instance.algo(**copy_algo_generated_data)
         query_result = cls_instance.query_all()
-        for base, query_method in query_result:
+        for base, query_method, generate_input in query_result:
             if base.__name__ == queryable_type and issubclass(base, Queryable):
-                query_generated_data = generate_data(query_variables, element_type, arguments)
                 query_base, query_method = base, query_method
                 base_instance = query_base()
                 copy_attributes(cls_instance, base_instance)
+                if generate_input:
+                    query_generated_data = generate_input(base_instance)
+                else:
+                    query_generated_data = generate_data(query_variables, element_type, arguments)
                 query_output = query_method(base_instance, **deepcopy(query_generated_data))
                 value, graph = query_output['value'], query_output['svg']
                 return str(value), copy_algo_generated_data, query_generated_data, graph
@@ -206,17 +208,25 @@ def copy_attributes(source_instance: Any, target_instance: Any) -> None:
 
 def generate_options(cls, algo_generated_data, queryable_type, element_type, query_variables, query_answer, arguments):
     option_data = deepcopy(algo_generated_data)
-    cls_instance = cls()  # Create a new instance of the class
+    cls_instance = cls(generate_graph=False)  # Create a new instance of the class
     for var_name, var_value in option_data.items():
         if hasattr(var_value, 'generate_options') and callable(getattr(var_value, 'generate_options')):
             option_instance = var_value.generate_options()
             option_data[var_name] = option_instance
     query_result_option, _, _, _ = process_query_result(cls_instance, option_data, queryable_type, element_type, query_variables, arguments)
-    if str(query_result_option) == query_answer:
-        opt = ast.literal_eval(query_answer)
-        if isinstance(opt, list):
-            random.shuffle(opt)
-            return str(opt)
+    try:
+        if str(query_result_option) == query_answer:
+            try:
+                opt = ast.literal_eval(query_answer)
+                if isinstance(opt, list):
+                    random.shuffle(opt)
+                    return str(opt)
+            except (ValueError, SyntaxError) as e:
+                print(f"Error in ast.literal_eval: {e}")
+                return query_result_option
+    except Exception as e:
+        print(f"Error during comparison: {e}")
+
     return query_result_option
 
 def generate_svg(algo_generated_data) -> Dict[str, Optional[str]]:

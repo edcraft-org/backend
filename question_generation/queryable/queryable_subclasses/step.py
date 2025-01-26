@@ -1,5 +1,6 @@
 from copy import copy
-from typing import Any, Dict
+import random
+from typing import Any, Callable, Dict
 from question_generation.queryable.queryable_class import Queryable
 
 
@@ -30,3 +31,10 @@ class Step(Queryable):
 
     def step(self, state: Any):
         self.history["value"].append(copy(state))
+
+    def generate_input(self) -> int:
+        value_length = len(self.history["value"])
+        if value_length > 0:
+            return {"step": random.randint(1, value_length)}
+        else:
+            return 0

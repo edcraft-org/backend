@@ -22,7 +22,6 @@ class AdversarialEnv(Env):
         return action, {}, 0.0
 
     def initial_state(self) -> Any:
-        print(self.initial)
         return self.initial
 
     def terminal(self, state: AdversarialElement) -> bool:

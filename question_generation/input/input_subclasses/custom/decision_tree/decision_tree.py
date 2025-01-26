@@ -28,17 +28,25 @@ class DecisionTreeInput(Input):
         for _ in range(max_attempts):
             if len(generated_data) >= self.num_samples:
                 break
-
-            sample = {}
-            for column in self.columns:
-                sample[column] = str(random.choices(self.values[column], self.probs[column])[0])
-
+            sample = self.generate_sample()
             sample_tuple = tuple(sample.items())
             if sample_tuple not in seen_samples:
                 seen_samples.add(sample_tuple)
                 generated_data.append(sample)
         self.data = generated_data
         return generated_data
+
+    def generate_sample(self) -> Dict[str, Any]:
+        sample = {}
+        for column in self.columns:
+            sample[column] = str(random.choices(self.values[column], self.probs[column])[0])
+        return sample
+
+    def generate_input(self) -> Dict[str, Any]:
+        input = self.generate_sample()
+        columns_excluding_last = self.columns[:-1]
+        input_excluding_last = {k: input[k] for k in columns_excluding_last}
+        return {"example": input_excluding_last}
 
     def value(self) -> Any:
         return self._value
@@ -66,7 +74,7 @@ class DecisionTreeInput(Input):
         ])
 
         # Export the plotly figure to SVG
-        svg_bytes = fig.to_image(format="svg", width=400, height = 400)
+        svg_bytes = fig.to_image(format="svg")
         svg_content = svg_bytes.decode("utf-8")
         return svg_content
 

@@ -49,7 +49,7 @@ def get_query_variables(cls: GeneratedQuestionClassType, queryable_type: str) ->
     """Get variable annotations for query methods."""
     queryable_methods = cls().query_all()
     query_variables = []
-    for base, query_method in queryable_methods:
+    for base, query_method, _ in queryable_methods:
         if base.__name__ == queryable_type and issubclass(base, Queryable):
             signature = inspect.signature(query_method)
             query_variables.extend(

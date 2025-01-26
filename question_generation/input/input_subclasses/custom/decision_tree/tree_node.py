@@ -13,3 +13,6 @@ class DecisionTreeNode(Input):
 
         self.parent_attribute = None
         self.parent_attribute_value = None
+
+    def __str__(self):
+        return self.label
