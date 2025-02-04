@@ -1,5 +1,6 @@
 import ast
 from copy import deepcopy
+import inspect
 import random
 from typing import Any, Dict, List, Optional
 
@@ -159,7 +160,7 @@ def generate_subquestion(
         sub['options'] = options
         sub['marks'] = subquestion.questionDetails.marks
         # Generate SVG for subquestion
-        svg_content = generate_svg(copy_algo_generated_data)
+        svg_content = generate_svg(copy_algo_generated_data, subquestion.queryable)
         if svg_content:
             sub['svg'] = svg_content
         if answer_svg_content:
@@ -229,7 +230,7 @@ def generate_options(cls, algo_generated_data, queryable_type, element_type, que
 
     return query_result_option
 
-def generate_svg(algo_generated_data) -> Dict[str, Optional[str]]:
+def generate_svg(algo_generated_data, queryable_type=None) -> Dict[str, Optional[str]]:
     """
     Generate Graphviz and table representations in SVG format if the instance has to_graph and to_table methods.
 
@@ -243,7 +244,13 @@ def generate_svg(algo_generated_data) -> Dict[str, Optional[str]]:
     svg_content = {}
     if instance:
         if hasattr(instance, 'to_graph') and callable(getattr(instance, 'to_graph')):
-            svg_content['graph'] = instance.to_graph()
+            to_graph_method = getattr(instance, 'to_graph')
+            to_graph_signature = inspect.signature(to_graph_method)
+            if 'label_edges' in to_graph_signature.parameters:
+                label_edges = queryable_type == 'Pruned'
+                svg_content['graph'] = to_graph_method(label_edges=label_edges)
+            else:
+                svg_content['graph'] = to_graph_method()
         if hasattr(instance, 'to_table') and callable(getattr(instance, 'to_table')):
             svg_content['table'] = instance.to_table()
 

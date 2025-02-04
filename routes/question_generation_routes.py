@@ -101,28 +101,6 @@ async def generate_variable_route(request: GenerateVariableRequest, autoloaded_c
 async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)):
     try:
         return generate_question(request, autoloaded_classes)
-    # results = []
-    #     for _ in range(request.number_of_questions):
-    #         generated_question = generate_question(
-    #             autoloaded_classes,
-    #             request.topic,
-    #             request.subtopic,
-    #             request.arguments,
-    #             request.queryable,
-    #             request.element_type,
-    #             request.subclasses,
-    #             request.number_of_options,
-    #             request.question_description,
-    #         )
-
-    #         if generated_question is None:
-    #             raise HTTPException(status_code=500, detail="Failed to generate question.")
-
-    #         results.append({
-    #             **generated_question,
-    #             "marks": request.marks,
-    #         })
-        # return results
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

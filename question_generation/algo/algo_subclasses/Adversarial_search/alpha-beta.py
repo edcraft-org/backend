@@ -25,7 +25,7 @@ class AlphaBetaClass(Algo, Question, Output, Pruned):
                     if beta <= alpha:
                         # Prune remaining actions
                         for remaining_action in legal_actions[i+1:]:
-                            self.prune(state, remaining_action)
+                            self.prune(problem.get_edge_label(state, remaining_action), state, remaining_action)
                         break
                 return max_eval
             else:
@@ -38,7 +38,7 @@ class AlphaBetaClass(Algo, Question, Output, Pruned):
                     if beta <= alpha:
                         # Prune remaining actions
                         for remaining_action in legal_actions[i+1:]:
-                            self.prune(state, remaining_action)
+                            self.prune(problem.get_edge_label(state, remaining_action), state, remaining_action)
                         break
                 return min_eval
         result = minimax(problem, problem.initial_state(), alpha=float('-inf'), beta=float('inf'), maximising=maximising)

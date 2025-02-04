@@ -7,6 +7,7 @@ class Pruned(Queryable):
     def __init__(self):
         super().__init__()
         self.variable: str = "pruned_edges"
+        self.nodes: List[Any] = []
         self.pruned_edges: Dict[str, Any] = {
             "value": [],
             "svg": {
@@ -15,8 +16,9 @@ class Pruned(Queryable):
             },
         }
 
-    def prune(self, state: Any, next_state:Any):
-        self.pruned_edges["value"].append((copy(state), copy(next_state)))
+    def prune(self, label: str, state: Any, next_state:Any):
+        self.pruned_edges["value"].append(label)
+        self.nodes.append((copy(state), copy(next_state)))
 
     def prune_graph(self, initial_state: Any, diagramClass: DiagramOutput):
-        self.pruned_edges["svg"]["graph"] = diagramClass.to_graph(initial_state, self.pruned_edges["value"])
+        self.pruned_edges["svg"]["graph"] = diagramClass.to_graph(initial_state, self.nodes)

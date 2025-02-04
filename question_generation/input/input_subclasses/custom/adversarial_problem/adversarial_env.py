@@ -41,3 +41,7 @@ class AdversarialEnv(Env):
         if self.terminal(state):
             return state.value()
         raise ValueError("Evaluation called on a non-terminal node.")
+
+    def get_edge_label(self, state: AdversarialElement, child: AdversarialElement) -> str:
+        """Get the edge label between two nodes."""
+        raise NotImplementedError

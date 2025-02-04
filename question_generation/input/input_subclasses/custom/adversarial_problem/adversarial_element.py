@@ -1,4 +1,6 @@
+from copy import deepcopy
 from typing import Generic, List, Optional, Type, TypeVar
+from uuid import uuid4
 from question_generation.input.input_class import Input
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
 from question_generation.quantifiable.quantifiable_class import Quantifiable
@@ -27,6 +29,7 @@ class AdversarialElement(Input, Quantifiable, Generic[T]):
             self._value = None  # Default value is None, used for non-terminal nodes
 
         self.neighbours = neighbours if neighbours is not None else []  # Internal nodes will have children
+        self.id = uuid4()
 
     def get_actions(self) -> List['AdversarialElement']:
         return self.neighbours
@@ -42,10 +45,16 @@ class AdversarialElement(Input, Quantifiable, Generic[T]):
             return self._value
         raise ValueError("Cannot retrieve value from a non-terminal node without a value.")
 
+    def __deepcopy__(self, memo):
+        new_instance = self.__class__(self.element_type, self._value)
+        new_instance.neighbours = deepcopy(self.neighbours, memo)
+        new_instance.id = self.id
+        return new_instance
+
     def __str__(self) -> str:
         if self.is_terminal():
-            return f"Terminal Element with value {self._value}"
-        return f"Internal Element with {len(self.neighbours)} neighbours"
+            return f"Terminal Element with value {self._value}, id {self.id}"
+        return f"Internal Element with {len(self.neighbours)} neighbours, id {self.id}"
 
     def __repr__(self) -> str:
         return self.__str__()
