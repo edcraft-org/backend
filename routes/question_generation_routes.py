@@ -1,5 +1,8 @@
+import json
 from pathlib import Path
+import subprocess
 from typing import Any, Dict, List, Type
+import docker
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
 from models.question_generation import GenerateVariableRequest, VariableResponse
@@ -12,6 +15,7 @@ from utils.topics_helper import list_queryable, list_subtopics, list_topics
 from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
+client = docker.from_env()
 
 def get_autoloaded_classes() -> Dict[str, Dict[str, GeneratedQuestionClassType]]:
     base_package = 'question_generation.algo.algo_subclasses'
@@ -88,20 +92,37 @@ async def generate_variable_route(request: GenerateVariableRequest, autoloaded_c
             request.subclasses,
             request.question_description,
         )
-        # return {"context": result['context'], "context_init": result['context_init']}
         result['context'] = {key: str(value) for key, value in result['context'].items()}
         return result
-        # return {"context": result['context'], "context_init": result['context_init']}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.post("/generate")
-async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)):
+async def generate_route(request: GenerateQuestionRequest):
     try:
-        return generate_question(request, autoloaded_classes)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        input_data = {
+            "request": request.model_dump(),
+        }
+        input_json = json.dumps(input_data)
+        result = subprocess.run(
+            [
+                "docker", "run", "--rm", "-i",
+                "sandbox_image"
+            ],
+            input=input_json,
+            capture_output=True,
+            text=True
+        )
+
+        json_start = result.stdout.rfind('{"result"')
+        if json_start != -1:
+            valid_json_str = result.stdout[json_start:]
+            output = json.loads(valid_json_str)
+            return output['result']
+        else:
+            return {"error": "No valid JSON found in the output"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

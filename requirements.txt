@@ -6,3 +6,5 @@ uvicorn
 pandas
 plotly
 kaleido
+graphviz
+docker

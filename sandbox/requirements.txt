@@ -1,0 +1,5 @@
+beanie
+pandas
+plotly
+faker
+graphviz
