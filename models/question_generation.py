@@ -8,16 +8,20 @@ class ContextRequest(BaseModel):
     selectedQuantifiables: Dict[str, str]
     arguments: Dict[str, Any]
     argumentsInit: Optional[Dict[str, Any]]
+    userAlgoCode: Optional[str]
+    userEnvCode: Optional[str]
 
 class QuestionDetails(BaseModel):
     marks: float
     number_of_options: int
+    # question_type: str
 
 class SubQuestion(BaseModel):
     description: str
     queryable: str
     context: ContextRequest
     questionDetails: QuestionDetails
+    userQueryableCode: Optional[str]
 
 class GenerateQuestionRequest(BaseModel):
     description: str
@@ -35,3 +39,6 @@ class GenerateVariableRequest(BaseModel):
 class VariableResponse(BaseModel):
     context: Dict[str, Any]
     context_init: Dict[str, Any]
+
+class UserQueryableRequest(BaseModel):
+    userAlgoCode: str

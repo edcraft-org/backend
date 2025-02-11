@@ -10,6 +10,7 @@ from utils.faker_helper import generate_data_for_type
 from utils.types_helper import GeneratedQuestionClassType
 from utils.classes_helper import get_all_subclasses, get_matching_class, get_subtopic_class
 from utils.exceptions import handle_exceptions
+from utils.user__code_helper import load_user_class
 from utils.variable_helper import get_algo_variables, get_query_variables
 
 @handle_exceptions
@@ -21,9 +22,15 @@ def generate_variable(
     element_type: Dict[str, str],
     subclasses: Dict[str, str],
     question_description: str,
-    arguments_init: Optional[Dict[str, Any]] = None
+    arguments_init: Optional[Dict[str, Any]] = None,
+    userAlgoCode: Optional[str] = None,
+    userEnvCode: Optional[str] = None,
+    userQueryableCode: Optional[str] = None
 ) -> Dict[str, Any]:
-    cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
+    if userAlgoCode:
+        cls = load_user_class(userAlgoCode, userQueryableCode)
+    else:
+        cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
     cls_instance = cls()
     algo_variables = get_algo_variables(cls)
     for var in algo_variables:
@@ -76,7 +83,8 @@ def generate_question(
             request.context.selectedQuantifiables,
             request.context.selectedSubclasses,
             request.description,
-            arguments_init=request.context.argumentsInit
+            arguments_init=request.context.argumentsInit,
+            userAlgoCode=request.context.userAlgoCode
         )
         result['description'] = outer['description']
         # Generate SVG for main question
@@ -112,7 +120,10 @@ def generate_subquestion(
                 subquestion.context.selectedQuantifiables if subquestion.context.selectedQuantifiables else outerContext.selectedQuantifiables,
                 subquestion.context.selectedSubclasses if subquestion.context.selectedSubclasses else outerContext.selectedSubclasses,
                 subquestion.description,
-                arguments_init=subquestion.context.argumentsInit if subquestion.context.argumentsInit else outerContext.argumentsInit
+                arguments_init=subquestion.context.argumentsInit if subquestion.context.argumentsInit else outerContext.argumentsInit,
+                userAlgoCode=subquestion.context.userAlgoCode,
+                userEnvCode=subquestion.context.userEnvCode,
+                userQueryableCode=subquestion.userQueryableCode
             )
             sub_algo_variables = inner['context']
             cls_instance = inner['cls_instance']

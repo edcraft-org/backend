@@ -1,5 +1,5 @@
 from functools import wraps
-from http.client import HTTPException
+from fastapi import HTTPException
 
 def handle_exceptions(func):
     @wraps(func)
