@@ -11,6 +11,8 @@ from utils.constants import MAX_VALUE
 
 
 def generate_data_for_type(data_type: Type, element_type: str, init_args: Dict[str, Any] = {}) -> Any:
+    if not data_type:
+        return {}
     origin = get_origin(data_type)
     if origin is not None:
         return handle_generic_type(data_type, element_type, origin, init_args)

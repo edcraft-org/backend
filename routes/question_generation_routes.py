@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Type
 import docker
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
-from models.question_generation import GenerateVariableRequest, UserQueryableRequest, VariableResponse
+from models.question_generation import GenerateInputRequest, GenerateVariableRequest, InputRequest, UserQueryableRequest, VariableResponse
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from utils.classes_helper import autoload_classes, get_subclasses_name
-from utils.question_generation_helper import generate_question, generate_variable
-from utils.variable_helper import list_algo_variable, list_queryable_variable
-from utils.topics_helper import list_queryable, list_subtopics, list_topics, list_user_queryable
+from utils.question_generation_helper import generate_input, generate_question, generate_variable
+from utils.variable_helper import list_algo_variable, list_input_variable, list_queryable_variable, list_user_algo_variables
+from utils.topics_helper import list_keys, list_queryable, list_user_queryable
 from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
@@ -22,18 +22,30 @@ def get_autoloaded_classes() -> Dict[str, Dict[str, GeneratedQuestionClassType]]
     base_path = Path(__file__).resolve().parent.parent / 'question_generation' / 'algo' / 'algo_subclasses'
     return autoload_classes(str(base_path), base_package)
 
+def get_input_classes() -> Dict[str, Dict[str, Any]]:
+    base_package = 'question_generation.input.input_subclasses'
+    base_path = Path(__file__).resolve().parent.parent / 'question_generation' / 'input' / 'input_subclasses'
+    return autoload_classes(str(base_path), base_package)
 
-@question_generation_router.get("/topics")
-async def get_topics_route(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> List[str]:
+
+@question_generation_router.get("/algos")
+async def list_algos_route(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> Dict[str, Any]:
     try:
-        return list_topics(autoloaded_classes)
+        return list_keys(autoloaded_classes)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@question_generation_router.get("/topics/{topic}/subtopics")
-async def get_subtopics_route(topic: str, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> List[str]:
+@question_generation_router.get("/input")
+async def list_input_classes_route(input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> Dict[str, Any]:
     try:
-        return list_subtopics(autoloaded_classes, topic)
+        return list_keys(input_classes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.post("/input")
+async def list_input_route(request: InputRequest, input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> List[Dict[str, Any]]:
+    try:
+        return list_input_variable(request.input_path, input_classes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -73,6 +85,16 @@ async def list_algo_variables_route(topic: str, subtopic: str, autoloaded_classe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@question_generation_router.post("/user/algoVariables")
+async def list_user_algo_variables_route(request: UserQueryableRequest) -> List[Dict[str, Any]]:
+    try:
+        return list_user_algo_variables(request.userAlgoCode)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @question_generation_router.get("/topics/{topic}/subtopics/{subtopic}/queryables/{queryable}/variables")
 async def list_queryable_variables_route(topic: str, subtopic: str, queryable: str, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> List[Dict[str, Any]]:
     try:
@@ -100,6 +122,23 @@ async def generate_variable_route(request: GenerateVariableRequest, autoloaded_c
             request.element_type,
             request.subclasses,
             request.question_description,
+            request.arguments_init,
+            userAlgoCode = request.userAlgoCode,
+        )
+        result['context'] = {key: str(value) for key, value in result['context'].items()}
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.post("/generate_input")
+async def generate_input_route(request: GenerateInputRequest, input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> VariableResponse:
+    try:
+        result = generate_input(
+            request.input_path,
+            request.variable_options,
+            input_classes,
         )
         result['context'] = {key: str(value) for key, value in result['context'].items()}
         return result

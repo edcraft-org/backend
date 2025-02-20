@@ -35,6 +35,8 @@ class GenerateVariableRequest(BaseModel):
     subclasses: Dict[str, str]
     arguments: Dict[str, Any]
     question_description: str
+    arguments_init: Optional[Dict[str, Any]] = None
+    userAlgoCode: Optional[str] = None
 
 class VariableResponse(BaseModel):
     context: Dict[str, Any]
@@ -42,3 +44,9 @@ class VariableResponse(BaseModel):
 
 class UserQueryableRequest(BaseModel):
     userAlgoCode: str
+
+class InputRequest(BaseModel):
+    input_path: Dict[str, Any]
+class GenerateInputRequest(BaseModel):
+    input_path: Dict[str, Any]
+    variable_options: Dict[str, Any]

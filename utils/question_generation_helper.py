@@ -14,6 +14,31 @@ from utils.user__code_helper import load_user_class
 from utils.variable_helper import get_algo_variables, get_query_variables
 
 @handle_exceptions
+def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """Generate a variable for a given class."""
+
+    def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
+        """Recursively traverse the input path to find the corresponding class."""
+        for key, subpath in path.items():
+            if key in classes:
+                if isinstance(subpath, dict):
+                    return traverse_path(subpath, classes[key])
+                else:
+                    return classes[key].get(subpath)
+        return None
+    try:
+        cls = traverse_path(input_path, input_classes)
+        algo_generated_data = cls(**(variable_options[cls.__name__])) if variable_options.get(cls.__name__) else cls()
+        algo_generated_data_init = algo_generated_data.get_init_args()
+        return {
+            'context': { cls.__name__: algo_generated_data },
+            'context_init': { cls.__name__: algo_generated_data_init }
+        }
+    except Exception as e:
+        print(f"Error generating variable: {e}")
+        return {}
+
+@handle_exceptions
 def generate_variable(
     autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]],
     topic: str,
@@ -35,9 +60,13 @@ def generate_variable(
     algo_variables = get_algo_variables(cls)
     for var in algo_variables:
         if var["name"] in subclasses:
-            var["type"] = get_matching_class(get_all_subclasses(var["type"]), subclasses[var["name"]])
+            subclass_type = get_matching_class(get_all_subclasses(var["type"]), subclasses[var["name"]])
+            if subclass_type:
+                var['type'] = subclass_type
     try:
         algo_generated_data = {}
+        filtered_variables = [var for var in algo_variables if not arguments_init or var["name"] not in arguments_init]
+        algo_generated_data = generate_data(filtered_variables, element_type, arguments)
         if arguments_init:
             for key, value in arguments_init.items():
                 var_type = next((v["type"] for v in algo_variables if v["name"] == key), None)
@@ -45,13 +74,6 @@ def generate_variable(
                     algo_generated_data[key] = var_type(**value) if isinstance(value, dict) else var_type(value)
                 else:
                     algo_generated_data[key] = value
-        # if arguments_init:
-        #     algo_generated_data = {
-        #         key: algo_variables[key]["type"](**value) if isinstance(value, dict) else value
-        #         for key, value in arguments_init.items()
-        #     }
-        else:
-            algo_generated_data = generate_data(algo_variables, element_type, arguments)
         algo_generated_data_init = {
             key: value.get_init_args() if hasattr(value, 'get_init_args') else value
             for key, value in algo_generated_data.items()
@@ -91,7 +113,6 @@ def generate_question(
         svg_content = generate_svg(outer['context'])
         if svg_content:
             result['svg'] = svg_content
-
         if request.sub_questions:
             result['subquestions'] = [
                 generate_subquestion(autoloaded_classes, outer, outerContext, subquestion)
@@ -201,7 +222,7 @@ def process_query_result(cls_instance, algo_generated_data, queryable_type, elem
                 return str(value), copy_algo_generated_data, query_generated_data, graph
     except Exception as e:
         print(f"Error processing query result: {e}")
-        return '', {}, {}
+        return '', {}, {}, {}
 
 def generate_data(variables: list, element_type: Dict[str, str], arguments: Dict[str, Any]) -> Dict[str, Any]:
     return {

@@ -3,9 +3,10 @@ import re
 from types import GenericAlias
 from typing import Any, Dict, List, Type
 from question_generation.queryable.queryable_class import Queryable
-from utils.classes_helper import get_subclasses_name, get_subtopic_class
+from utils.classes_helper import get_subtopic_class
 from utils.exceptions import handle_exceptions
 from utils.types_helper import GeneratedQuestionClassType
+from utils.user__code_helper import load_user_class
 
 def get_init_arguments(cls: Type) -> List[Dict[str, Any]]:
     """Get the initialization arguments for a given class."""
@@ -110,6 +111,69 @@ def list_algo_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestion
       for var in algo_variables
     ]
     return algo_variables_list
+
+@handle_exceptions
+def list_user_algo_variables(userAlgoCode: str) -> List[Dict[str, Any]]:
+    user_class = load_user_class(userAlgoCode)
+    algo_variables = get_algo_variables(user_class)
+    algo_variables_list = [
+      {
+        "name": var["name"],
+        "type": format_type(str(var["type"])),
+        "subclasses": [
+            {
+                "name": subclass["name"],
+                "arguments": [
+                    {
+                        "name": arg["name"],
+                        "type": format_type(str(arg["type"]))
+                    }
+                    for arg in subclass["arguments"]
+                ]
+            }
+            for subclass in var.get("subclasses", [])
+        ],
+        "arguments": [
+            {
+                "name": arg["name"],
+                "type": format_type(str(arg["type"]))
+            }
+            for arg in var.get("arguments", [])
+        ]
+      }
+      for var in algo_variables
+    ]
+    return algo_variables_list
+
+@handle_exceptions
+def list_input_variable(input_path: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
+        """Recursively traverse the input path to find the corresponding class."""
+        for key, subpath in path.items():
+            if key in classes:
+                if isinstance(subpath, dict):
+                    return traverse_path(subpath, classes[key])
+                else:
+                    return classes[key].get(subpath)
+        return None
+
+    for key, subpath in input_path.items():
+        cls = traverse_path({key: subpath}, input_classes)
+        if cls:
+            base_type = cls.__bases__[0].__name__ if cls.__bases__ else "Unknown"
+            variable =  {
+                "name": cls.__name__,
+                "type": base_type,
+                "subclasses": [],
+                "arguments": [
+                    {
+                        "name": arg["name"],
+                        "type": format_type(str(arg["type"]))
+                    }
+                    for arg in get_init_arguments(cls)
+                ]
+            }
+            return [variable]
 
 @handle_exceptions
 def list_queryable_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]], topic: str, subtopic: str, queryable_type: str) -> List[Dict[str, Any]]:
