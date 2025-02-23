@@ -1,10 +1,11 @@
+from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Dict
 
-class Env:
+class Env(ABC):
     """
     Base class for an environment.
     """
-
+    @abstractmethod
     def transition(self, state: Any, action: Any) -> Tuple[Any, Dict]:
         """
         Perform an action in the environment.
@@ -18,6 +19,7 @@ class Env:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def initial_state(self) -> Any:
         """
         Get the initial state of the environment.
@@ -27,6 +29,7 @@ class Env:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def terminal(self, state: Any) -> bool:
         """
         Check if the given state is a terminal state.
@@ -39,6 +42,7 @@ class Env:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_possible_actions(self, state: Any) -> List[Any]:
         """
         Get the possible actions that can be performed from the given state.

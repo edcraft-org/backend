@@ -1,5 +1,6 @@
 from copy import copy
 from typing import Any, Callable, Dict
+from question_generation.graph.diagram_output import DiagramOutput
 from question_generation.queryable.queryable_class import Queryable
 
 
@@ -30,3 +31,6 @@ class Evaluate(Queryable):
 
     def generate_input(self) -> int:
         return self.generate_input_function() if self.generate_input_function else None
+
+    def evaluate_graph(self, initial_state: Any, diagramClass: DiagramOutput):
+        self.evaluation_data["svg"]["graph"] = diagramClass.to_graph(tree=initial_state)

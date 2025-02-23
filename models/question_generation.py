@@ -4,10 +4,13 @@ from typing import Any, Dict, List, Optional
 class ContextRequest(BaseModel):
     selectedTopic: str
     selectedSubtopic: str
+    inputPath: Dict[str, Any]
     selectedSubclasses: Dict[str, str]
     selectedQuantifiables: Dict[str, str]
     arguments: Dict[str, Any]
+    inputArguments: Dict[str, Any]
     argumentsInit: Optional[Dict[str, Any]]
+    inputInit: Optional[Dict[str, Any]]
     userAlgoCode: Optional[str]
     userEnvCode: Optional[str]
 
@@ -19,6 +22,7 @@ class QuestionDetails(BaseModel):
 class SubQuestion(BaseModel):
     description: str
     queryable: str
+    inputQueryable: str
     context: ContextRequest
     questionDetails: QuestionDetails
     userQueryableCode: Optional[str]
@@ -47,6 +51,7 @@ class UserQueryableRequest(BaseModel):
 
 class InputRequest(BaseModel):
     input_path: Dict[str, Any]
+
 class GenerateInputRequest(BaseModel):
     input_path: Dict[str, Any]
     variable_options: Dict[str, Any]

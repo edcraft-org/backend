@@ -3,7 +3,7 @@ import re
 from types import GenericAlias
 from typing import Any, Dict, List, Type
 from question_generation.queryable.queryable_class import Queryable
-from utils.classes_helper import get_subtopic_class
+from utils.classes_helper import get_subtopic_class, traverse_path
 from utils.exceptions import handle_exceptions
 from utils.types_helper import GeneratedQuestionClassType
 from utils.user__code_helper import load_user_class
@@ -147,16 +147,6 @@ def list_user_algo_variables(userAlgoCode: str) -> List[Dict[str, Any]]:
 
 @handle_exceptions
 def list_input_variable(input_path: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-    def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
-        """Recursively traverse the input path to find the corresponding class."""
-        for key, subpath in path.items():
-            if key in classes:
-                if isinstance(subpath, dict):
-                    return traverse_path(subpath, classes[key])
-                else:
-                    return classes[key].get(subpath)
-        return None
-
     for key, subpath in input_path.items():
         cls = traverse_path({key: subpath}, input_classes)
         if cls:
@@ -189,3 +179,20 @@ def list_queryable_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQue
       for var in query_variables
     ]
     return query_variables_list
+
+@handle_exceptions
+def list_input_queryable_variable(input_path: Dict[str, Any], queryable: str, input_classes: Dict[str, Dict[str, Type]]) -> List[Dict[str, Any]]:
+    for key, subpath in input_path.items():
+        cls = traverse_path({key: subpath}, input_classes)
+        query_variables = get_query_variables(cls, queryable)
+        query_variables_list = [
+          {
+            "name": var["name"],
+            "type": format_type(str(var["type"])),
+            "subclasses": [],
+            "arguments": []
+          }
+          for var in query_variables
+        ]
+        return query_variables_list
+    return []

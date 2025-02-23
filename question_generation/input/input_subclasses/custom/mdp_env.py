@@ -1,11 +1,11 @@
+from abc import ABC, abstractmethod
 from .env import Env
 from typing import Any, Tuple, Dict
 
-class MDPEnv(Env):
+class MDPEnv(ABC):
     """
     Abstract base class for a Markov Decision Process (MDP) environment.
     """
-
     def step(self, state: Any, action: Any) -> Tuple[Any, Dict, float]:
         """
         Perform an action in the environment and return the next state, additional info, and reward.
@@ -21,6 +21,7 @@ class MDPEnv(Env):
         reward = self.reward(state, action, next_state)
         return next_state, {}, reward
 
+    @abstractmethod
     def reward(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Calculate the reward for a given state transition.

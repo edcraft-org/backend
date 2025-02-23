@@ -2,7 +2,7 @@ import ast
 from copy import deepcopy
 import inspect
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestion
 from question_generation.queryable.queryable_class import Queryable
@@ -14,7 +14,7 @@ from utils.user__code_helper import load_user_class
 from utils.variable_helper import get_algo_variables, get_query_variables
 
 @handle_exceptions
-def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]], input_init: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Generate a variable for a given class."""
 
     def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
@@ -28,11 +28,16 @@ def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any],
         return None
     try:
         cls = traverse_path(input_path, input_classes)
-        algo_generated_data = cls(**(variable_options[cls.__name__])) if variable_options.get(cls.__name__) else cls()
-        algo_generated_data_init = algo_generated_data.get_init_args()
+        if input_init:
+            input_generated_data = cls(**input_init[cls.__name__]) if input_init.get(cls.__name__) else cls()
+        else:
+            input_generated_data = cls(**(variable_options[cls.__name__])) if variable_options.get(cls.__name__) else cls()
+        input_generated_data_init = input_generated_data.get_init_args()
         return {
-            'context': { cls.__name__: algo_generated_data },
-            'context_init': { cls.__name__: algo_generated_data_init }
+            'context': { cls.__name__: input_generated_data },
+            'context_init': { cls.__name__: input_generated_data_init },
+            'cls': cls ,
+            'cls_instance': input_generated_data,
         }
     except Exception as e:
         print(f"Error generating variable: {e}")
@@ -93,29 +98,38 @@ def generate_variable(
 def generate_question(
     request: GenerateQuestionRequest,
     autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]],
+    input_classes: Dict[str, Dict[str, Type]]
 ) -> Dict[str, Any]:
     try:
         result = {}
         outerContext = deepcopy(request.context)
-        outer = generate_variable(
-            autoloaded_classes,
-            request.context.selectedTopic,
-            request.context.selectedSubtopic,
-            request.context.arguments,
-            request.context.selectedQuantifiables,
-            request.context.selectedSubclasses,
-            request.description,
-            arguments_init=request.context.argumentsInit,
-            userAlgoCode=request.context.userAlgoCode
-        )
-        result['description'] = outer['description']
-        # Generate SVG for main question
-        svg_content = generate_svg(outer['context'])
-        if svg_content:
-            result['svg'] = svg_content
+        outer = {}
+        if request.context.selectedTopic and request.context.selectedSubtopic:
+            outer = generate_variable(
+                autoloaded_classes,
+                request.context.selectedTopic,
+                request.context.selectedSubtopic,
+                request.context.arguments,
+                request.context.selectedQuantifiables,
+                request.context.selectedSubclasses,
+                request.description,
+                arguments_init=request.context.argumentsInit,
+                userAlgoCode=request.context.userAlgoCode
+            )
+
+        outerInput = {}
+        if request.context.inputPath:
+            outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit)
+
+        result['description'] = outer['description'] if outer['description'] else ''
+        if outer['context']:
+            # Generate SVG for main question
+            svg_content = generate_svg(outer['context'])
+            if svg_content:
+                result['svg'] = svg_content
         if request.sub_questions:
             result['subquestions'] = [
-                generate_subquestion(autoloaded_classes, outer, outerContext, subquestion)
+                generate_subquestion(autoloaded_classes, outer, outerContext, subquestion, outerInput, input_classes)
                 for subquestion in request.sub_questions
             ]
 
@@ -129,7 +143,87 @@ def generate_subquestion(
     autoloaded_classes: Dict[str, Dict[str, Any]],
     outer: Dict[str, Any],
     outerContext: ContextRequest,
-    subquestion: SubQuestion
+    subquestion: SubQuestion,
+    outerInput: Dict[str, Any],
+    input_classes: Dict[str, Dict[str, Type]]
+):
+    if subquestion.queryable:
+        return generate_subquestion_queryable(
+            autoloaded_classes,
+            outer,
+            outerContext,
+            subquestion
+        )
+    elif subquestion.inputQueryable:
+        return generate_subquestion_input_queryable(
+            input_classes,
+            subquestion,
+            outerInput,
+        )
+
+def generate_subquestion_input_queryable(
+    input_classes: Dict[str, Dict[str, Type]],
+    subquestion: SubQuestion,
+    outerInput: Dict[str, Any]
+) -> Dict[str, Any]:
+    try:
+        if subquestion.context.inputPath:
+            inner = generate_input(
+                subquestion.context.inputPath,
+                subquestion.context.inputArguments,
+                input_classes,
+                subquestion.context.inputInit
+            )
+            sub_input_variable = inner['context']
+            cls_instance = inner['cls_instance']
+            cls = inner['cls']
+        else:
+            sub_input_variable = outerInput['context']
+            cls_instance = outerInput['cls_instance']
+            cls = outerInput['cls']
+        query_variables = get_query_variables(cls, subquestion.inputQueryable)
+        sub = {}
+        try:
+            sub['answer'], query_generated_data, answer_svg_content = process_input_query_result(
+                cls_instance,
+                subquestion.inputQueryable,
+                query_variables,
+                subquestion.context.inputArguments
+            )
+        except Exception as e:
+            print(f"Error processing query result: {e}")
+            return {}
+        sub['description'] = cls_instance.format_question_description(
+            subquestion.description,
+            {**query_generated_data}
+        )
+        options = [sub['answer']]
+        for _ in range(subquestion.questionDetails.number_of_options - 1):
+            try:
+                option = generate_input_query_options(
+                    cls_instance,
+                    subquestion.inputQueryable,
+                    {},
+                    query_variables,
+                    sub['answer'],
+                    subquestion.context.inputArguments
+                )
+                options.append(option)
+            except Exception as e:
+                print(f"Error generating option: {e}")
+                continue
+        sub['options'] = options
+        sub['marks'] = subquestion.questionDetails.marks
+        return sub
+    except Exception as e:
+        print(f"Error generating subquestion input queryable: {e}")
+        return {}
+
+def generate_subquestion_queryable(
+    autoloaded_classes: Dict[str, Dict[str, Any]],
+    outer: Dict[str, Any],
+    outerContext: ContextRequest,
+    subquestion: SubQuestion,
 ) -> Dict[str, Any]:
     try:
         if subquestion.context.selectedSubtopic:
@@ -224,6 +318,26 @@ def process_query_result(cls_instance, algo_generated_data, queryable_type, elem
         print(f"Error processing query result: {e}")
         return '', {}, {}, {}
 
+def process_input_query_result(cls_instance, queryable_type, query_variables, arguments):
+    try:
+        query_result = cls_instance.query_all()
+        for base, query_method, generate_input in query_result:
+            if base.__name__ == queryable_type and issubclass(base, Queryable):
+                query_base, query_method = base, query_method
+                base_instance = query_base()
+                copy_attributes(cls_instance, base_instance)
+                if generate_input:
+                    generated_input = generate_input(base_instance)
+                    query_generated_data = { query_variables[0]['name']: generated_input }
+                else:
+                    query_generated_data = generate_data(query_variables, {}, arguments)
+                query_output = query_method(base_instance, **deepcopy(query_generated_data))
+                value, graph = query_output['value'], query_output['svg']
+                return str(value), query_generated_data, graph
+    except Exception as e:
+        print(f"Error processing query result: {e}")
+        return '', {}, {}
+
 def generate_data(variables: list, element_type: Dict[str, str], arguments: Dict[str, Any]) -> Dict[str, Any]:
     return {
         var["name"]: generate_data_for_type(
@@ -261,6 +375,24 @@ def generate_options(cls, algo_generated_data, queryable_type, element_type, que
         print(f"Error during comparison: {e}")
 
     return query_result_option
+
+def generate_input_query_options(cls_instance, queryable_type, element_type, query_variables, query_answer, arguments):
+    query_result_option, _, _ = process_input_query_result(cls_instance, queryable_type, query_variables, arguments)
+    try:
+        if str(query_result_option) == query_answer:
+            try:
+                opt = ast.literal_eval(query_answer)
+                if isinstance(opt, list):
+                    random.shuffle(opt)
+                    return str(opt)
+            except (ValueError, SyntaxError) as e:
+                print(f"Error in ast.literal_eval: {e}")
+                return query_result_option
+    except Exception as e:
+        print(f"Error during comparison: {e}")
+
+    return query_result_option
+
 
 def generate_svg(algo_generated_data, queryable_type=None) -> Dict[str, Optional[str]]:
     """

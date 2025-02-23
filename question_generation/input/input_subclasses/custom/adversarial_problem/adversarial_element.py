@@ -8,6 +8,7 @@ from question_generation.quantifiable.quantifiable_class import Quantifiable
 T = TypeVar('T', bound=Quantifiable)
 
 class AdversarialElement(Input, Quantifiable, Generic[T]):
+    internal = True
     def __init__(self, element_type: Optional[Type[T]] = IntInput, value=None, neighbours=None):
         """
         Initialize a node in the tree.

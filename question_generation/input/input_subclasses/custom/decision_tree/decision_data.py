@@ -1,17 +1,18 @@
 import random
-from typing import List, Dict, Any, Type
-from graphviz import Digraph
+from typing import List, Dict, Any
 import pandas as pd
 import plotly.graph_objects as go
+from math import log2
 
 from question_generation.input.input_class import Input
-from question_generation.input.input_subclasses.custom.decision_tree.tree_node import DecisionTreeNode
-from question_generation.input.input_subclasses.primitive.int_type import IntInput
+from question_generation.queryable.queryable_subclasses.entropy import Entropy
+from question_generation.question.question import Question
 
-class DecisionTreeInput(Input):
+class DecisionDataInput(Input, Question, Entropy):
     _exposed_args = ['columns', 'values', 'probs', 'num_samples']
 
     def __init__(self, data: List[Dict[str, Any]] = None, columns: List[str] = None, values: Dict[str, List[Any]] = None, probs: Dict[str, List[float]] = None, num_samples: int = 5):
+        super().__init__()
         self.data = data if data is not None else []
         self.columns = columns if columns is not None else []
         self.values = values if values is not None else {}
@@ -19,6 +20,7 @@ class DecisionTreeInput(Input):
         self.num_samples = num_samples
         self._value = self.data if self.data else self.generate_data()
         self.root = None
+        self.entropy(self.data, self.entropy_function)
 
     def generate_data(self) -> List[Dict[str, Any]]:
         generated_data = []
@@ -78,7 +80,7 @@ class DecisionTreeInput(Input):
         svg_content = svg_bytes.decode("utf-8")
         return svg_content
 
-    def generate_options(self) -> 'DecisionTreeInput':
+    def generate_options(self) -> 'DecisionDataInput':
         """
         Generate options for generating input data.
         """
@@ -90,6 +92,43 @@ class DecisionTreeInput(Input):
                     new_sample[column] = random.choices(self.values[column], weights=self.probs[column])[0]
             new_data.append(new_sample)
         return self.__class__(data=new_data, columns=self.columns, values=self.values, probs=self.probs, num_samples=self.num_samples)
+
+    def entropy_function(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Calculate the entropy of the data.
+
+        Args:
+            data (List[Dict[str, Any]]): The data to calculate the entropy of.
+
+        Returns:
+            Dict[str, Any]: The entropy of the data.
+        """
+        entropy = {}
+        for column in self.columns:
+            entropy[column] = self.entropy_column(data, column)
+        return entropy
+
+    def entropy_column(self, data: List[Dict[str, Any]], column: str) -> float:
+        """
+        Calculate the entropy of a column in the data.
+        """
+        probs = self.get_probs(data, column)
+        return -sum(p * log2(p) for p in probs.values())
+
+    def get_probs(self, data: List[Dict[str, Any]], column: str) -> Dict[str, float]:
+        """
+        Calculate the probabilities of each value in a column.
+        """
+        value_counts = {}
+        for sample in data:
+            value = sample[column]
+            if value not in value_counts:
+                value_counts[value] = 0
+            value_counts[value] += 1
+        total_samples = len(data)
+        probs = {value: count / total_samples for value, count in value_counts.items()}
+        return probs
+
 
     def __str__(self) -> str:
         return f"{self._value}"

@@ -10,8 +10,8 @@ from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from utils.classes_helper import autoload_classes, get_subclasses_name
 from utils.question_generation_helper import generate_input, generate_question, generate_variable
-from utils.variable_helper import list_algo_variable, list_input_variable, list_queryable_variable, list_user_algo_variables
-from utils.topics_helper import list_keys, list_queryable, list_user_queryable
+from utils.variable_helper import list_algo_variable, list_input_queryable_variable, list_input_variable, list_queryable_variable, list_user_algo_variables
+from utils.topics_helper import list_input_queryable, list_keys, list_queryable, list_user_queryable
 from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
@@ -69,6 +69,16 @@ async def list_user_queryables_route(request: UserQueryableRequest) -> List[str]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@question_generation_router.post("/input/queryables")
+async def list_input_queryables_route(request: InputRequest, input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> List[str]:
+    try:
+        return list_input_queryable(request.input_path, input_classes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @question_generation_router.get("/queryable_classes")
 async def get_queryable_classes_route(queryable_classes: Dict[str, Type[Queryable]]) -> List[str]:
     try:
@@ -103,6 +113,16 @@ async def list_queryable_variables_route(topic: str, subtopic: str, queryable: s
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.post("/input/queryables/{queryable}/variables")
+async def list_input_queryable_variables_route(queryable: str, request: InputRequest, input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> List[Dict[str, Any]]:
+    try:
+        return list_input_queryable_variable(request.input_path, queryable, input_classes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @question_generation_router.get("/quantifiables")
 async def list_quantifiables_route() -> List[str]:
@@ -175,10 +195,10 @@ async def generate_route(request: GenerateQuestionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # @question_generation_router.post("/generate")
-# async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)):
+# async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes), input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)):
 #     try:
-#         return generate_question(request, autoloaded_classes)
+#         return generate_question(request, autoloaded_classes, input_classes)
 #     except ValueError as e:
 #         raise HTTPException(status_code=400, detail=str(e))
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

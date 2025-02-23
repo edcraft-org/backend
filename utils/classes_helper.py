@@ -37,7 +37,19 @@ def traverse_directory(current_path: str, current_package: str, autoloaded_class
             module_name = f"{current_package}.{item.stem}"
             importlib.import_module(module_name)  # Dynamically import the module
             cls = get_class_from_module(module_name)
-            autoloaded_classes[item.stem] = cls
+            if item.stem not in autoloaded_classes and not inspect.isabstract(cls) and not getattr(cls, 'internal', False):
+                autoloaded_classes[item.stem] = cls
+
+@handle_exceptions
+def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
+    """Recursively traverse the input path to find the corresponding class."""
+    for key, subpath in path.items():
+        if key in classes:
+            if isinstance(subpath, dict):
+                return traverse_path(subpath, classes[key])
+            else:
+                return classes[key].get(subpath)
+    return None
 
 def get_all_subclasses(cls) -> List[Type]:
     """Recursively get all subclasses of a given class."""
@@ -60,6 +72,15 @@ def get_subtopic_class(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestion
         return autoloaded_classes[topic][subtopic]
     else:
         raise ValueError(f"Subtopic '{subtopic}' not found in autoloaded classes for topic '{topic}'.")
+
+@handle_exceptions
+def get_input_class(input_path: Dict[str, Any], input_classes: Dict[str, Dict[str, Type]]) -> Type:
+    """Return the class for a given input type."""
+    for key, subpath in input_path.items():
+        cls = traverse_path({key: subpath}, input_classes)
+        if cls:
+            return cls
+    raise ValueError(f"Input path '{input_path}' not found in input classes.")
 
 def get_matching_class(subclasses, name):
     return next((cls for cls in subclasses if cls.__name__ == name), None)

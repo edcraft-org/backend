@@ -3,15 +3,15 @@ from typing import Counter
 
 from question_generation.algo.algo import Algo
 from question_generation.graph.decision_tree_graph import DecisionTreeGraph
-from question_generation.input.input_subclasses.custom.decision_tree.decision_tree import DecisionTreeInput
+from question_generation.input.input_subclasses.custom.decision_tree.decision_data import DecisionDataInput
 from question_generation.input.input_subclasses.custom.decision_tree.tree_node import DecisionTreeNode
 from question_generation.queryable.queryable_subclasses.evaluate import Evaluate
 from question_generation.queryable.queryable_subclasses.output import Output
 from question_generation.queryable.queryable_subclasses.step import Step
 from question_generation.question.question import Question
 
-class DecisionTreeLearningClass(Algo, Question, Step, Output, Evaluate):
-    def algo(self, problem: DecisionTreeInput) -> None:
+class DecisionTreeLearningClass(Algo, Question, Step, Evaluate):
+    def algo(self, problem: DecisionDataInput) -> None:
         # Dynamically determine the class attribute
         class_attribute = list(problem.value()[0].keys())[-1]
         def ID3(examples, default, root_attr=None):
@@ -59,7 +59,7 @@ class DecisionTreeLearningClass(Algo, Question, Step, Output, Evaluate):
             classifications = [example[class_attribute] for example in examples]
             decision_tree_root = ID3(examples, max(classifications, key=classifications.count))
             if self.generate_graph:
-                self.output_graph(decision_tree_root, DecisionTreeGraph())
+                self.evaluate_graph(decision_tree_root, DecisionTreeGraph())
             self.evaluate(decision_tree_root, self.evaluation, problem.generate_input)
         except Exception as e:
             print(f"Error generating decision tree: {e}")
