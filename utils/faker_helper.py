@@ -7,12 +7,14 @@ from question_generation.input.input_subclasses.primitive.str_type import String
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from utils.classes_helper import get_all_subclasses, get_matching_class
 from utils.constants import MAX_VALUE
+from utils.conversion_helper import deserialize_init_args
 
 
 
 def generate_data_for_type(data_type: Type, element_type: str, init_args: Dict[str, Any] = {}) -> Any:
     if not data_type:
         return {}
+    init_args = deserialize_init_args(init_args)
     origin = get_origin(data_type)
     if origin is not None:
         return handle_generic_type(data_type, element_type, origin, init_args)

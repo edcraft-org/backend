@@ -40,11 +40,11 @@ class AdversarialElement(Input, Quantifiable, Generic[T]):
 
     def value(self) -> float:
         """
-        Return the value of the node. This is only meaningful for terminal nodes.
+        Return the value of the node.
         """
-        if self.is_terminal() and self._value is not None:
+        if self._value is not None:
             return self._value
-        raise ValueError("Cannot retrieve value from a non-terminal node without a value.")
+        raise ValueError("Cannot retrieve value.")
 
     def __deepcopy__(self, memo):
         new_instance = self.__class__(self.element_type, self._value)
@@ -53,9 +53,7 @@ class AdversarialElement(Input, Quantifiable, Generic[T]):
         return new_instance
 
     def __str__(self) -> str:
-        if self.is_terminal():
-            return f"Terminal Element with value {self._value}, id {self.id}"
-        return f"Internal Element with {len(self.neighbours)} neighbours, id {self.id}"
+        return f"Element with value {self._value}, {len(self.neighbours)} neighbours, id {self.id}"
 
     def __repr__(self) -> str:
         return self.__str__()

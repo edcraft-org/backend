@@ -2,10 +2,11 @@ import ast
 from copy import deepcopy
 import inspect
 import random
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestion
 from question_generation.queryable.queryable_class import Queryable
+from utils.conversion_helper import deserialize_init_args
 from utils.faker_helper import generate_data_for_type
 from utils.types_helper import GeneratedQuestionClassType
 from utils.classes_helper import get_all_subclasses, get_matching_class, get_subtopic_class
@@ -76,13 +77,18 @@ def generate_variable(
             for key, value in arguments_init.items():
                 var_type = next((v["type"] for v in algo_variables if v["name"] == key), None)
                 if var_type:
-                    algo_generated_data[key] = var_type(**value) if isinstance(value, dict) else var_type(value)
+                    algo_generated_data[key] = var_type(**deserialize_init_args(value)) if isinstance(value, dict) else var_type(value)
                 else:
                     algo_generated_data[key] = value
         algo_generated_data_init = {
             key: value.get_init_args() if hasattr(value, 'get_init_args') else value
             for key, value in algo_generated_data.items()
         }
+        for key, value in algo_generated_data_init.items():
+            if key in arguments:
+                for innerKey, innerValue in value.items():
+                    if innerKey in arguments[key] and callable(innerValue):
+                        algo_generated_data_init[key][innerKey] = arguments[key][innerKey]
     except Exception as e:
         print(f"Error generating variable: {e}")
         algo_generated_data = {}
