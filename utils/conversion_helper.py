@@ -61,7 +61,6 @@ def deserialize_init_args(init_args: Dict[str, Any]) -> Dict[str, Any]:
     deserialized_args = {}
     for key, value in init_args.items():
         if isinstance(value, str) and "def " in value:
-            # print(value, 'value')
             deserialized_args[key] = deserialize_function(value)
         else:
             deserialized_args[key] = value

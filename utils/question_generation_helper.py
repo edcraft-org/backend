@@ -127,8 +127,8 @@ def generate_question(
         if request.context.inputPath:
             outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit)
 
-        result['description'] = outer['description'] if outer['description'] else ''
-        if outer['context']:
+        result['description'] = outer.get('description', '')
+        if outer.get('context'):
             # Generate SVG for main question
             svg_content = generate_svg(outer['context'])
             if svg_content:

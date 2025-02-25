@@ -17,11 +17,11 @@ class Entropy(Queryable):
         }
         self.keys: List[str] = []
 
-    def query(self, key: str) -> Any:
+    def query(self, attribute: str) -> Any:
         states = super().query()
         try:
             return {
-                "value": states["value"][key],
+                "value": states["value"][attribute],
                 "svg": states["svg"],
             }
         except IndexError:
