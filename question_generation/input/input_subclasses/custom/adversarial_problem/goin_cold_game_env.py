@@ -1,6 +1,6 @@
 import random
 import string
-from typing import Any, Callable, Dict, List, Tuple, Type
+from typing import Any, Dict, List, Type
 
 from graphviz import Digraph
 from question_generation.input.input_class import Input
@@ -9,24 +9,67 @@ from question_generation.input.input_subclasses.custom.adversarial_problem.adver
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
 
 
-class GameEnv(AdversarialEnv, Input):
-    _exposed_args = ['initial_value', 'get_moves', 'terminal_function', 'evaluate_function']
+class GoldCoinGameEnv(AdversarialEnv, Input):
+    _exposed_args = ['initial_value', 'move_spaces', 'take_leftmost']
 
-    def __init__(self, element_type: Type = IntInput, initial_value: Any = None, get_moves: Callable[[Any], List[Any]] = None, terminal_function: Callable[[Any], bool] = None, evaluate_function: Callable[[Any, bool], int] = None):
+    # move_spaces index 0: left, index 1: right; values -1 indicates any number of moves [1, 0]
+    # leftmost indicates whether coin can be taken from leftmost or rightmost position True
+    def __init__(self, element_type: Type = IntInput, initial_value: Any = None, move_spaces: List[str] = [-1, 0], take_leftmost: bool = True):
         self.element_type = element_type
         self.values = []
         self._index = 0
         self.initial_value = initial_value
-        self.get_moves = get_moves if get_moves is not None else self.get_possible_actions
-        self.terminal_function = terminal_function if terminal_function is not None else self.terminal
-        self.evaluate_function = evaluate_function if evaluate_function is not None else self.evaluate
+        self.move_spaces = move_spaces
+        self.take_leftmost = take_leftmost
         self.initial = self.generate_input()
 
     def terminal(self, state: AdversarialElement) -> bool:
-        return self.terminal_function(state)
+        return "G" not in state.value()
 
     def evaluate(self, state: AdversarialElement, turn: bool) -> int:
-        return self.evaluate_function(state, turn)
+        if state.is_terminal():
+            return -1 if turn else 1
+        return 0
+
+    def get_moves(self, state: AdversarialElement) -> List[AdversarialElement]:
+        children = []
+        if self.terminal(state):
+            return children
+        state_list = state.value()
+
+        removal_position = 0 if self.take_leftmost else -1
+        if state_list[removal_position] in {"C", "G"}:
+            new_state = state_list[:]
+            new_state[removal_position] = "_"
+            children.append(AdversarialElement(value=new_state))
+
+        if self.move_spaces[0] != 0:
+            for i in range(1, len(self.initial_value)):
+                if state_list[i] in {"C", "G"}:
+                    max_left_moves = self.move_spaces[0] if self.move_spaces[0] != -1 else i
+                    for j in range(i - 1, max(-1, i - max_left_moves - 1), -1):
+                        if state_list[j] == "_":
+                            new_state = state_list[:]
+                            new_state[j] = new_state[i]
+                            new_state[i] = "_"
+                            children.append(AdversarialElement(value=new_state))
+                        else:
+                            break
+
+        if self.move_spaces[1] != 0:
+            for i in range(len(self.initial_value) - 2, -1, -1):
+                if state_list[i] in {"C", "G"}:
+                    max_right_moves = self.move_spaces[1] if self.move_spaces[1] != -1 else len(self.initial_value) - i - 1
+                    for j in range(i + 1, min(len(self.initial_value), i + max_right_moves + 1)):
+                        if state_list[j] == "_":
+                            new_state = state_list[:]
+                            new_state[j] = new_state[i]
+                            new_state[i] = "_"
+                            children.append(AdversarialElement(value=new_state))
+                        else:
+                            break
+
+        return children
 
     def generate_input(self) -> AdversarialElement:
         """
@@ -108,7 +151,7 @@ class GameEnv(AdversarialEnv, Input):
         _add_nodes_edges(dot, self.initial, 0, label_edges, node_map, edge_set)
         return dot.pipe().decode('utf-8')
 
-    def generate_options(self) -> 'GameEnv':
+    def generate_options(self) -> 'GoldCoinGameEnv':
         """
         Generate options for the game tree by shuffling the leaves.
 
@@ -117,7 +160,7 @@ class GameEnv(AdversarialEnv, Input):
         """
         shuffled_values = self.initial_value[:]
         random.shuffle(shuffled_values)
-        return self.__class__(element_type=self.element_type, initial_value=shuffled_values, get_moves=self.get_moves, terminal_function=self.terminal_function, evaluate_function=self.evaluate_function)
+        return self.__class__(element_type=self.element_type, initial_value=shuffled_values, move_spaces=self.move_spaces, take_leftmost=self.take_leftmost)
 
     def __str__(self):
         """

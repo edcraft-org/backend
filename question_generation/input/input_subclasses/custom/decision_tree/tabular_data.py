@@ -8,7 +8,7 @@ from question_generation.input.input_class import Input
 from question_generation.queryable.queryable_subclasses.entropy import Entropy
 from question_generation.question.question import Question
 
-class DecisionDataInput(Input, Question, Entropy):
+class TabularDataInput(Input, Question, Entropy):
     _exposed_args = ['columns', 'values', 'probs', 'num_samples']
 
     def __init__(self, data: List[Dict[str, Any]] = None, columns: List[str] = None, values: Dict[str, List[Any]] = None, probs: Dict[str, List[float]] = None, num_samples: int = 5):
@@ -80,7 +80,7 @@ class DecisionDataInput(Input, Question, Entropy):
         svg_content = svg_bytes.decode("utf-8")
         return svg_content
 
-    def generate_options(self) -> 'DecisionDataInput':
+    def generate_options(self) -> 'TabularDataInput':
         """
         Generate options for generating input data.
         """
