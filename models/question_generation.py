@@ -55,3 +55,4 @@ class InputRequest(BaseModel):
 class GenerateInputRequest(BaseModel):
     input_path: Dict[str, Any]
     variable_options: Dict[str, Any]
+    input_init: Optional[Dict[str, Any]] = None
