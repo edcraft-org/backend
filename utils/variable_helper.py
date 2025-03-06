@@ -1,12 +1,12 @@
 import inspect
 import re
 from types import GenericAlias
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 from question_generation.queryable.queryable_class import Queryable
 from utils.classes_helper import get_subtopic_class, traverse_path
 from utils.exceptions import handle_exceptions
 from utils.types_helper import GeneratedQuestionClassType
-from utils.user__code_helper import load_user_class
+from utils.user__code_helper import load_input_class, load_user_class
 
 def get_init_arguments(cls: Type) -> List[Dict[str, Any]]:
     """Get the initialization arguments for a given class."""
@@ -113,8 +113,8 @@ def list_algo_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestion
     return algo_variables_list
 
 @handle_exceptions
-def list_user_algo_variables(userAlgoCode: str) -> List[Dict[str, Any]]:
-    user_class = load_user_class(userAlgoCode)
+def list_user_algo_variables(userAlgoCode: str, userEnvCode: Optional[str] = None) -> List[Dict[str, Any]]:
+    user_class = load_user_class(userAlgoCode, userEnvCode=userEnvCode)
     algo_variables = get_algo_variables(user_class)
     algo_variables_list = [
       {
@@ -144,6 +144,25 @@ def list_user_algo_variables(userAlgoCode: str) -> List[Dict[str, Any]]:
       for var in algo_variables
     ]
     return algo_variables_list
+
+@handle_exceptions
+def list_user_input_variables(userEnvCode: str) -> List[Dict[str, Any]]:
+    cls = load_input_class(userEnvCode)
+    if cls:
+        base_type = cls.__bases__[0].__name__ if cls.__bases__ else "Unknown"
+        variable =  {
+            "name": cls.__name__,
+            "type": base_type,
+            "subclasses": [],
+            "arguments": [
+                {
+                    "name": arg["name"],
+                    "type": format_type(str(arg["type"]))
+                }
+                for arg in get_init_arguments(cls)
+            ]
+        }
+        return [variable]
 
 @handle_exceptions
 def list_input_variable(input_path: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:

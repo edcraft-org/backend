@@ -11,11 +11,17 @@ from utils.faker_helper import generate_data_for_type
 from utils.types_helper import GeneratedQuestionClassType
 from utils.classes_helper import get_all_subclasses, get_matching_class, get_subtopic_class
 from utils.exceptions import handle_exceptions
-from utils.user__code_helper import load_user_class
+from utils.user__code_helper import load_input_class, load_user_class
 from utils.variable_helper import get_algo_variables, get_query_variables
 
 @handle_exceptions
-def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any], input_classes: Dict[str, Dict[str, Any]], input_init: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def generate_input(
+    input_path: Dict[str, Any],
+    variable_options: Dict[str, Any],
+    input_classes: Dict[str, Dict[str, Any]],
+    input_init: Optional[Dict[str, Any]] = None,
+    user_env_code: Optional[str] = None
+) -> Dict[str, Any]:
     """Generate a variable for a given class."""
 
     def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
@@ -28,7 +34,11 @@ def generate_input(input_path: Dict[str, Any], variable_options: Dict[str, Any],
                     return classes[key].get(subpath)
         return None
     try:
-        cls = traverse_path(input_path, input_classes)
+        if user_env_code:
+            cls = load_input_class(user_env_code)
+        else:
+            cls = traverse_path(input_path, input_classes)
+
         if input_init:
             input_generated_data = cls(**input_init[cls.__name__]) if input_init.get(cls.__name__) else cls()
         else:
@@ -59,7 +69,7 @@ def generate_variable(
     userQueryableCode: Optional[str] = None
 ) -> Dict[str, Any]:
     if userAlgoCode:
-        cls = load_user_class(userAlgoCode, userQueryableCode)
+        cls = load_user_class(userAlgoCode, userQueryableCode, userEnvCode)
     else:
         cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
     cls_instance = cls()
@@ -120,12 +130,13 @@ def generate_question(
                 request.context.selectedSubclasses,
                 request.description,
                 arguments_init=request.context.argumentsInit,
-                userAlgoCode=request.context.userAlgoCode
+                userAlgoCode=request.context.userAlgoCode,
+                userEnvCode=request.context.userEnvCode,
             )
 
         outerInput = {}
         if request.context.inputPath:
-            outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit)
+            outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit, user_env_code=request.context.userEnvCode)
 
         result['description'] = outer.get('description', '')
         if outer.get('context'):
@@ -178,7 +189,8 @@ def generate_subquestion_input_queryable(
                 subquestion.context.inputPath,
                 subquestion.context.inputArguments,
                 input_classes,
-                subquestion.context.inputInit
+                subquestion.context.inputInit,
+                subquestion.context.userEnvCode
             )
             sub_input_variable = inner['context']
             cls_instance = inner['cls_instance']

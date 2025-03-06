@@ -1,8 +1,10 @@
 from typing import Any, Optional
 
-def load_user_class(userAlgoCode: str, userQueryableCode: Optional[str] = None) -> Any:
+def load_user_class(userAlgoCode: str, userQueryableCode: Optional[str] = None, userEnvCode: Optional[str] = None) -> Any:
     namespace = {}
     try:
+        if userEnvCode:
+            exec(userEnvCode, namespace)
         if userQueryableCode:
             exec(userQueryableCode, namespace)
         exec(userAlgoCode, namespace)
@@ -10,7 +12,18 @@ def load_user_class(userAlgoCode: str, userQueryableCode: Optional[str] = None) 
         user_classes = {k: v for k, v in namespace.items() if isinstance(v, type)}
         if not user_classes:
             raise ValueError("No valid class found in user-defined code")
-
         return next(reversed(user_classes.values()))
+    except Exception as e:
+        raise ValueError(f"Error loading user-defined class: {e}")
+
+def load_input_class(userEnvCode: str) -> Any:
+    namespace = {}
+    try:
+        exec(userEnvCode, namespace)
+        input_classes = {k: v for k, v in namespace.items() if isinstance(v, type)}
+        if not input_classes:
+            raise ValueError("No valid class found in user-defined code")
+
+        return next(reversed(input_classes.values()))
     except Exception as e:
         raise ValueError(f"Error loading user-defined class: {e}")

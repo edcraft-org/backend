@@ -41,6 +41,7 @@ class GenerateVariableRequest(BaseModel):
     question_description: str
     arguments_init: Optional[Dict[str, Any]] = None
     userAlgoCode: Optional[str] = None
+    userEnvCode: Optional[str] = None
 
 class VariableResponse(BaseModel):
     context: Dict[str, Any]
@@ -48,6 +49,10 @@ class VariableResponse(BaseModel):
 
 class UserQueryableRequest(BaseModel):
     userAlgoCode: str
+    userEnvCode: Optional[str] = None
+
+class UserInputVariableRequest(BaseModel):
+    userEnvCode: str
 
 class InputRequest(BaseModel):
     input_path: Dict[str, Any]
@@ -56,3 +61,4 @@ class GenerateInputRequest(BaseModel):
     input_path: Dict[str, Any]
     variable_options: Dict[str, Any]
     input_init: Optional[Dict[str, Any]] = None
+    user_env_code: Optional[str] = None
