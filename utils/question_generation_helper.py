@@ -60,7 +60,7 @@ def generate_input(
             'cls_instance': input_generated_data,
         }
     except Exception as e:
-        print(f"Error generating variable: {e}")
+        print(f"Error generating input: {e}")
         return {}
 
 @handle_exceptions
@@ -162,7 +162,7 @@ def generate_question(
         return result
 
     except Exception as e:
-        print(f"Error generating variable: {e}")
+        print(f"Error generating question: {e}")
         return {}
 
 def generate_subquestion(
@@ -198,6 +198,7 @@ def generate_subquestion_input_queryable(
                 subquestion.context.inputPath,
                 subquestion.context.inputArguments,
                 input_classes,
+                subquestion.context.selectedQuantifiables,
                 subquestion.context.inputInit,
                 subquestion.context.userEnvCode
             )
@@ -244,7 +245,9 @@ def generate_subquestion_input_queryable(
         return sub
     except Exception as e:
         print(f"Error generating subquestion input queryable: {e}")
-        return {}
+        return {
+            'options': [],
+        }
 
 def generate_subquestion_queryable(
     autoloaded_classes: Dict[str, Dict[str, Any]],

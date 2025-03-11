@@ -7,9 +7,11 @@ from question_generation.input.input_class import Input
 from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_element import AdversarialElement
 from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_env import AdversarialEnv
 from question_generation.input.input_subclasses.primitive.int_type import IntInput
+from question_generation.queryable.queryable_subclasses.children import DirectChildren
+from question_generation.question.question import Question
 
 
-class GoldCoinGameEnv(AdversarialEnv, Input):
+class GoldCoinGameEnv(AdversarialEnv, Input, Question, DirectChildren):
     _exposed_args = ['initial_value', 'move_spaces', 'take_leftmost']
 
     # move_spaces index 0: left, index 1: right; values -1 indicates any number of moves [1, 0]
@@ -18,10 +20,11 @@ class GoldCoinGameEnv(AdversarialEnv, Input):
         self.element_type = element_type
         self.values = []
         self._index = 0
-        self.initial_value = initial_value
+        self.initial_value = initial_value if initial_value is not None else ['C', 'C', '_', 'G']
         self.move_spaces = move_spaces
         self.take_leftmost = take_leftmost
         self.initial = self.generate_input()
+        self.children(self.values, self.get_direct_children)
 
     def terminal(self, state: AdversarialElement) -> bool:
         return "G" not in state.value()
@@ -167,3 +170,28 @@ class GoldCoinGameEnv(AdversarialEnv, Input):
         String representation of the values for debugging purposes.
         """
         return str(self.values)
+
+    def get_direct_children(self, state_value: List[str]) -> List[List[str]]:
+        """
+        Get the direct children of a given state value by traversing the game tree from self.initial.
+
+        Args:
+            state_value (List[str]): The state value.
+
+        Returns:
+            List[List[str]]: The direct children of the given state value.
+        """
+        def find_state(node: AdversarialElement, target_value: List[str]) -> AdversarialElement:
+            if node.value() == target_value:
+                return node
+            for child in node.neighbours:
+                result = find_state(child, target_value)
+                if result:
+                    return result
+            return None
+
+        target_node = find_state(self.initial, state_value)
+        if target_node:
+            return [child.value() for child in target_node.neighbours]
+        else:
+            return []
