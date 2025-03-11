@@ -60,5 +60,6 @@ class InputRequest(BaseModel):
 class GenerateInputRequest(BaseModel):
     input_path: Dict[str, Any]
     variable_options: Dict[str, Any]
+    element_type: Dict[str, str]
     input_init: Optional[Dict[str, Any]] = None
     user_env_code: Optional[str] = None

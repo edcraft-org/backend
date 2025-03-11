@@ -5,6 +5,7 @@ import random
 from typing import Any, Dict, Optional, Type
 
 from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestion
+from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from utils.conversion_helper import deserialize_init_args
 from utils.faker_helper import generate_data_for_type
@@ -19,6 +20,7 @@ def generate_input(
     input_path: Dict[str, Any],
     variable_options: Dict[str, Any],
     input_classes: Dict[str, Dict[str, Any]],
+    element_type: Dict[str, str],
     input_init: Optional[Dict[str, Any]] = None,
     user_env_code: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -38,11 +40,18 @@ def generate_input(
             cls = load_input_class(user_env_code)
         else:
             cls = traverse_path(input_path, input_classes)
-
+        selectedQuantifiable = element_type.get(cls.__name__)
+        quantifiable = get_matching_class(get_all_subclasses(Quantifiable), selectedQuantifiable) or selectedQuantifiable
         if input_init:
-            input_generated_data = cls(**input_init[cls.__name__]) if input_init.get(cls.__name__) else cls()
+            if quantifiable:
+                input_generated_data = cls(quantifiable, **input_init[cls.__name__]) if input_init.get(cls.__name__) else cls(quantifiable)
+            else:
+                input_generated_data = cls(**input_init[cls.__name__]) if input_init.get(cls.__name__) else cls()
         else:
-            input_generated_data = cls(**(variable_options[cls.__name__])) if variable_options.get(cls.__name__) else cls()
+            if quantifiable:
+                input_generated_data = cls(quantifiable, **variable_options[cls.__name__]) if variable_options.get(cls.__name__) else cls(quantifiable)
+            else:
+                input_generated_data = cls(**(variable_options[cls.__name__])) if variable_options.get(cls.__name__) else cls()
         input_generated_data_init = input_generated_data.get_init_args()
         return {
             'context': { cls.__name__: input_generated_data },

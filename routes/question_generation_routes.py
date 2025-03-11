@@ -169,6 +169,7 @@ async def generate_input_route(request: GenerateInputRequest, input_classes: Dic
             request.input_path,
             request.variable_options,
             input_classes,
+            request.element_type,
             request.input_init,
             request.user_env_code
         )
