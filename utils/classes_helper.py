@@ -1,7 +1,7 @@
 import inspect
 import importlib
 from pathlib import Path
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 from question_generation.input.input_subclasses.custom.adversarial_problem.adversarial_env import AdversarialEnv
 from question_generation.input.input_subclasses.custom.graph.adjacency_list import AdjacencyListInput
@@ -49,6 +49,46 @@ def traverse_path(path: Dict[str, Any], classes: Dict[str, Any]) -> Any:
                 return traverse_path(subpath, classes[key])
             else:
                 return classes[key].get(subpath)
+    return None
+
+def get_class_path(cls: Type) -> Optional[Dict[str, str]]:
+    """
+    Get the input path for a given class.
+
+    Args:
+        cls (Type): The class to get the path for.
+
+    Returns:
+        Optional[Dict[str, str]]: The input path as a nested dictionary, or None if not found.
+    """
+    try:
+        # Get the module path
+        module_path = cls.__module__.split('.')
+
+        # Get the class name
+        class_name = cls.__name__
+
+        # Build the path dictionary
+        if 'custom' in module_path:
+            # For custom classes, build path like {'custom': {'graph': 'adjacency_list'}}
+            custom_index = module_path.index('custom')
+            if len(module_path) > custom_index + 1:
+                category = module_path[custom_index + 1]
+                subcategory = module_path[-1]
+                return {'custom': {category: subcategory}}
+
+        elif 'primitive' in module_path:
+            # For primitive types, build path like {'primitive': 'int_type'}
+            return {'primitive': module_path[-1]}
+
+        elif 'composite' in module_path:
+            # For composite types, build path like {'composite': 'list_type'}
+            return {'composite': module_path[-1]}
+
+    except Exception as e:
+        print(f"Error getting class path: {e}")
+        return None
+
     return None
 
 def get_all_subclasses(cls) -> List[Type]:

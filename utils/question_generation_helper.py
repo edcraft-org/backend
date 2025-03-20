@@ -2,7 +2,7 @@ import ast
 from copy import deepcopy
 import inspect
 import random
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestion
 from question_generation.quantifiable.quantifiable_class import Quantifiable
@@ -10,7 +10,7 @@ from question_generation.queryable.queryable_class import Queryable
 from utils.conversion_helper import deserialize_init_args
 from utils.faker_helper import generate_data_for_type
 from utils.types_helper import GeneratedQuestionClassType
-from utils.classes_helper import get_all_subclasses, get_matching_class, get_subtopic_class
+from utils.classes_helper import get_all_subclasses, get_class_path, get_matching_class, get_subtopic_class
 from utils.exceptions import handle_exceptions
 from utils.user__code_helper import load_input_class, load_user_class
 from utils.variable_helper import get_algo_variables, get_query_variables
@@ -74,7 +74,7 @@ def generate_variable(
     question_description: str,
     arguments_init: Optional[Dict[str, Any]] = None,
     userAlgoCode: Optional[str] = None,
-    userEnvCode: Optional[str] = None,
+    userEnvCode: Optional[List[str]] = None,
     userQueryableCode: Optional[str] = None
 ) -> Dict[str, Any]:
     if userAlgoCode:
@@ -120,6 +120,88 @@ def generate_variable(
     return result
 
 @handle_exceptions
+def generate_output(
+    autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]],
+    topic: str,
+    subtopic: str,
+    arguments: Dict[str, Any],
+    element_type: Dict[str, str],
+    subclasses: Dict[str, str],
+    arguments_init: Optional[Dict[str, Any]] = None,
+    userAlgoCode: Optional[str] = None,
+    userEnvCode: Optional[List[str]] = None,
+    userQueryableCode: Optional[str] = None
+) -> Dict[str, Any]:
+    if userAlgoCode:
+        cls = load_user_class(userAlgoCode, userQueryableCode, userEnvCode)
+    else:
+        cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
+    cls_instance = cls()
+    algo_variables = get_algo_variables(cls)
+    for var in algo_variables:
+        if var["name"] in subclasses:
+            subclass_type = get_matching_class(get_all_subclasses(var["type"]), subclasses[var["name"]])
+            if subclass_type:
+                var['type'] = subclass_type
+    try:
+        algo_generated_data = {}
+        filtered_variables = [var for var in algo_variables if not arguments_init or var["name"] not in arguments_init]
+        algo_generated_data = generate_data(filtered_variables, element_type, arguments)
+        if arguments_init:
+            for key, value in arguments_init.items():
+                var_type = next((v["type"] for v in algo_variables if v["name"] == key), None)
+                if var_type:
+                    algo_generated_data[key] = var_type(**deserialize_init_args(value)) if isinstance(value, dict) else var_type(value)
+                else:
+                    algo_generated_data[key] = value
+        algo_generated_data_init = {
+            key: value.get_init_args() if hasattr(value, 'get_init_args') else value
+            for key, value in algo_generated_data.items()
+        }
+        for key, value in algo_generated_data_init.items():
+            if key in arguments:
+                for innerKey, innerValue in value.items():
+                    if innerKey in arguments[key] and callable(innerValue):
+                        algo_generated_data_init[key][innerKey] = arguments[key][innerKey]
+    except Exception as e:
+        print(f"Error generating variable: {e}")
+        algo_generated_data = {}
+
+    result = {}
+    copy_algo_generated_data = deepcopy(algo_generated_data)
+    outcome = cls_instance.algo(**copy_algo_generated_data)
+    if outcome is None:
+        return {
+            'output_init': {},
+            'output_path': {},
+            'context': {}
+        }
+    outcome_init = outcome.get_init_args() if hasattr(outcome, 'get_init_args') else outcome
+
+    # To be updated
+    if ('input_list' in outcome_init):
+        outcome_init['input_list'] = outcome
+
+    outcome_cls = type(outcome)
+    result['output_init'] = { outcome_cls.__name__ : outcome_init}
+    result['output_path'] = {} if get_class_path(outcome_cls) is None else get_class_path(outcome_cls)
+    result['context'] = { outcome_cls.__name__: outcome }
+    if result['output_path'] is {}:
+        if userEnvCode:
+            matching_env_code = None
+            for env_code in userEnvCode:
+                try:
+                    env_cls = load_input_class(env_code)
+                    if env_cls.__name__ == outcome_cls.__name__:
+                        matching_env_code = env_code
+                        break
+                except Exception as e:
+                    print(f"Error loading env class: {e}")
+                    continue
+            result['user_env_code'] = matching_env_code
+    return result
+
+@handle_exceptions
 def generate_question(
     request: GenerateQuestionRequest,
     autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]],
@@ -129,7 +211,7 @@ def generate_question(
         result = {}
         outerContext = deepcopy(request.context)
         outer = {}
-        if request.context.selectedTopic and request.context.selectedSubtopic:
+        if (request.context.selectedTopic and request.context.selectedSubtopic) or request.context.userAlgoCode:
             outer = generate_variable(
                 autoloaded_classes,
                 request.context.selectedTopic,
@@ -144,8 +226,8 @@ def generate_question(
             )
 
         outerInput = {}
-        if request.context.inputPath:
-            outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit, user_env_code=request.context.userEnvCode)
+        if request.context.inputPath or request.context.userEnvCode:
+            outerInput = generate_input(request.context.inputPath, request.context.inputArguments, input_classes, input_init=request.context.inputInit, user_env_code=request.context.userEnvCode[0] if (request.context.userEnvCode and len(request.context.userEnvCode) > 0) else None)
 
         result['description'] = outer.get('description', '')
         if outer.get('context'):
@@ -193,7 +275,7 @@ def generate_subquestion_input_queryable(
     outerInput: Dict[str, Any]
 ) -> Dict[str, Any]:
     try:
-        if subquestion.context.inputPath:
+        if subquestion.context.inputPath or subquestion.context.userEnvCode:
             inner = generate_input(
                 subquestion.context.inputPath,
                 subquestion.context.inputArguments,
@@ -202,11 +284,9 @@ def generate_subquestion_input_queryable(
                 subquestion.context.inputInit,
                 subquestion.context.userEnvCode
             )
-            sub_input_variable = inner['context']
             cls_instance = inner['cls_instance']
             cls = inner['cls']
         else:
-            sub_input_variable = outerInput['context']
             cls_instance = outerInput['cls_instance']
             cls = outerInput['cls']
         query_variables = get_query_variables(cls, subquestion.inputQueryable)
@@ -256,7 +336,7 @@ def generate_subquestion_queryable(
     subquestion: SubQuestion,
 ) -> Dict[str, Any]:
     try:
-        if subquestion.context.selectedSubtopic:
+        if subquestion.context.selectedSubtopic or subquestion.context.userAlgoCode:
             inner = generate_variable(
                 autoloaded_classes,
                 subquestion.context.selectedTopic,

@@ -113,7 +113,7 @@ def list_algo_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQuestion
     return algo_variables_list
 
 @handle_exceptions
-def list_user_algo_variables(userAlgoCode: str, userEnvCode: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_user_algo_variables(userAlgoCode: str, userEnvCode: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     user_class = load_user_class(userAlgoCode, userEnvCode=userEnvCode)
     algo_variables = get_algo_variables(user_class)
     algo_variables_list = [
@@ -200,6 +200,21 @@ def list_queryable_variable(autoloaded_classes: Dict[str, Dict[str, GeneratedQue
     return query_variables_list
 
 @handle_exceptions
+def list_user_queryable_variable(queryable_type: str, userAlgoCode: str, userEnvCode: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    user_class = load_user_class(userAlgoCode, userEnvCode=userEnvCode)
+    query_variables = get_query_variables(user_class, queryable_type)
+    query_variables_list = [
+      {
+        "name": var["name"],
+        "type": format_type(str(var["type"])),
+        "subclasses": [],
+        "arguments": []
+      }
+      for var in query_variables
+    ]
+    return query_variables_list
+
+@handle_exceptions
 def list_input_queryable_variable(input_path: Dict[str, Any], queryable: str, input_classes: Dict[str, Dict[str, Type]]) -> List[Dict[str, Any]]:
     for key, subpath in input_path.items():
         cls = traverse_path({key: subpath}, input_classes)
@@ -215,3 +230,18 @@ def list_input_queryable_variable(input_path: Dict[str, Any], queryable: str, in
         ]
         return query_variables_list
     return []
+
+@handle_exceptions
+def list_user_input_queryable_variable(queryable: str, userEnvCode: str) -> List[Dict[str, Any]]:
+    cls = load_input_class(userEnvCode)
+    query_variables = get_query_variables(cls, queryable)
+    query_variables_list = [
+        {
+        "name": var["name"],
+        "type": format_type(str(var["type"])),
+        "subclasses": [],
+        "arguments": []
+        }
+        for var in query_variables
+    ]
+    return query_variables_list

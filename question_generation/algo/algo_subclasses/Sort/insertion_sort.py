@@ -18,3 +18,4 @@ class InsertionSortClass(Algo, Question, Output, Step):
             input[j + 1] = key
             self.step(input)
         self.output(input)
+        return input

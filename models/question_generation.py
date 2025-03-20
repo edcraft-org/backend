@@ -12,7 +12,7 @@ class ContextRequest(BaseModel):
     argumentsInit: Optional[Dict[str, Any]]
     inputInit: Optional[Dict[str, Any]]
     userAlgoCode: Optional[str]
-    userEnvCode: Optional[str]
+    userEnvCode: Optional[List[str]]
 
 class QuestionDetails(BaseModel):
     marks: float
@@ -41,15 +41,22 @@ class GenerateVariableRequest(BaseModel):
     question_description: str
     arguments_init: Optional[Dict[str, Any]] = None
     userAlgoCode: Optional[str] = None
-    userEnvCode: Optional[str] = None
+    userEnvCode: Optional[List[str]] = None
 
 class VariableResponse(BaseModel):
     context: Dict[str, Any]
     context_init: Dict[str, Any]
+    cls_name: Optional[str] = None
+
+class OutputResponse(BaseModel):
+    output_init: Dict[str, Any]
+    output_path: Dict[str, Any]
+    context: Dict[str, Any]
+    user_env_code: Optional[str] = None
 
 class UserQueryableRequest(BaseModel):
     userAlgoCode: str
-    userEnvCode: Optional[str] = None
+    userEnvCode: Optional[List[str]] = None
 
 class UserInputVariableRequest(BaseModel):
     userEnvCode: str

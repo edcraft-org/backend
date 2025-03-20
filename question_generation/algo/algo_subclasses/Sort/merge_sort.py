@@ -49,3 +49,4 @@ class MergeSortClass(Algo, Question, Output, Step):
 
         merge_sort(input, 0, len(input) - 1)
         self.output(input)
+        return input

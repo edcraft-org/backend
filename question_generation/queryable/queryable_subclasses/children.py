@@ -19,8 +19,6 @@ class DirectChildren(Queryable):
 
     def query(self, state_value: Any) -> Any:
         states = super().query()
-        print(state_value)
-        print(self.get_children(state_value))
         try:
             return {
                 "value": self.get_children(state_value),

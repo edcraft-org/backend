@@ -1,10 +1,11 @@
-from typing import Any, Optional
+from typing import Any, List, Optional
 
-def load_user_class(userAlgoCode: str, userQueryableCode: Optional[str] = None, userEnvCode: Optional[str] = None) -> Any:
+def load_user_class(userAlgoCode: str, userQueryableCode: Optional[str] = None, userEnvCode: Optional[List[str]] = None) -> Any:
     namespace = {}
     try:
         if userEnvCode:
-            exec(userEnvCode, namespace)
+            for env_code in userEnvCode:
+                exec(env_code, namespace)
         if userQueryableCode:
             exec(userQueryableCode, namespace)
         exec(userAlgoCode, namespace)

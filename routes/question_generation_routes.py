@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Type
 import docker
 from fastapi import APIRouter, Depends, HTTPException
 from models import GenerateQuestionRequest
-from models.question_generation import GenerateInputRequest, GenerateVariableRequest, InputRequest, UserInputVariableRequest, UserQueryableRequest, VariableResponse
+from models.question_generation import GenerateInputRequest, GenerateVariableRequest, InputRequest, OutputResponse, UserInputVariableRequest, UserQueryableRequest, VariableResponse
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from utils.classes_helper import autoload_classes, get_subclasses_name
-from utils.question_generation_helper import generate_input, generate_question, generate_variable
-from utils.variable_helper import list_algo_variable, list_input_queryable_variable, list_input_variable, list_queryable_variable, list_user_algo_variables, list_user_input_variables
-from utils.topics_helper import list_input_queryable, list_keys, list_queryable, list_user_queryable
+from utils.question_generation_helper import generate_input, generate_output, generate_question, generate_variable
+from utils.variable_helper import list_algo_variable, list_input_queryable_variable, list_input_variable, list_queryable_variable, list_user_algo_variables, list_user_input_queryable_variable, list_user_input_variables, list_user_queryable_variable
+from utils.topics_helper import list_input_queryable, list_keys, list_queryable, list_user_input_queryable, list_user_queryable
 from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
@@ -79,6 +79,15 @@ async def list_input_queryables_route(request: InputRequest, input_classes: Dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@question_generation_router.post("/user/input/queryables")
+async def list_user_input_queryables_route(request: UserInputVariableRequest) -> List[str]:
+    try:
+        return list_user_input_queryable(request.userEnvCode)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @question_generation_router.get("/queryable_classes")
 async def get_queryable_classes_route(queryable_classes: Dict[str, Type[Queryable]]) -> List[str]:
     try:
@@ -123,6 +132,23 @@ async def list_queryable_variables_route(topic: str, subtopic: str, queryable: s
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@question_generation_router.post("/user/queryables/{queryable}/variables")
+async def list_user_queryable_variables_route(
+    queryable: str,
+    request: UserQueryableRequest
+) -> List[Dict[str, Any]]:
+    """Route for getting queryable variables from user-defined algo code."""
+    try:
+        return list_user_queryable_variable(
+            queryable,
+            request.userAlgoCode,
+            request.userEnvCode
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @question_generation_router.post("/input/queryables/{queryable}/variables")
 async def list_input_queryable_variables_route(queryable: str, request: InputRequest, input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)) -> List[Dict[str, Any]]:
     try:
@@ -132,6 +158,21 @@ async def list_input_queryable_variables_route(queryable: str, request: InputReq
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@question_generation_router.post("/user/input/queryables/{queryable}/variables")
+async def list_user_input_queryable_variables_route(
+    queryable: str,
+    request: UserInputVariableRequest
+) -> List[Dict[str, Any]]:
+    """Route for getting queryable variables from user-defined input code."""
+    try:
+        return list_user_input_queryable_variable(
+            queryable,
+            request.userEnvCode
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @question_generation_router.get("/quantifiables")
 async def list_quantifiables_route() -> List[str]:
@@ -156,6 +197,29 @@ async def generate_variable_route(request: GenerateVariableRequest, autoloaded_c
             userEnvCode = request.userEnvCode
         )
         result['context'] = {key: str(value) for key, value in result['context'].items()}
+        result['cls_name'] = result['cls'].__name__
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.post("/generate_output")
+async def generate_output_route(request: GenerateVariableRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes)) -> OutputResponse:
+    try:
+        result = generate_output(
+            autoloaded_classes,
+            request.topic,
+            request.subtopic,
+            request.arguments,
+            request.element_type,
+            request.subclasses,
+            request.arguments_init,
+            userAlgoCode = request.userAlgoCode,
+            userEnvCode = request.userEnvCode
+        )
+        if result['context']:
+            result['context'] = {key: str(value) for key, value in result['context'].items()}
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -174,6 +238,7 @@ async def generate_input_route(request: GenerateInputRequest, input_classes: Dic
             request.user_env_code
         )
         result['context'] = {key: str(value) for key, value in result['context'].items()}
+        result['cls_name'] = result['cls'].__name__
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

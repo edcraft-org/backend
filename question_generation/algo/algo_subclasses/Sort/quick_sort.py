@@ -29,3 +29,4 @@ class QuickSortClass(Algo, Question, Output, Step):
 
         quick_sort(input, 0, len(input) - 1)
         self.output(input)
+        return input

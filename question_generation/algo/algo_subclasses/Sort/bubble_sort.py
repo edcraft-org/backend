@@ -19,3 +19,4 @@ class BubbleSortClass(Algo, Question, Output, Step):
             if not swapped:
                 break
         self.output(input)
+        return input
