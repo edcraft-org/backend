@@ -108,6 +108,8 @@ def generate_variable(
                 for innerKey, innerValue in value.items():
                     if innerKey in arguments[key] and callable(innerValue):
                         algo_generated_data_init[key][innerKey] = arguments[key][innerKey]
+        copy_algo_generated_data = deepcopy(algo_generated_data)
+        outcome = cls_instance.algo(**copy_algo_generated_data)
     except Exception as e:
         print(f"Error generating variable: {e}")
         algo_generated_data = {}
@@ -117,6 +119,7 @@ def generate_variable(
     result['description'] = cls_instance.format_question_description(question_description, {**algo_generated_data})
     result['cls'] = cls
     result['cls_instance'] = cls_instance
+    result['has_output'] = outcome is not None
     return result
 
 @handle_exceptions

@@ -15,7 +15,7 @@ from utils.topics_helper import list_input_queryable, list_keys, list_queryable,
 from utils.types_helper import GeneratedQuestionClassType
 
 question_generation_router = APIRouter()
-client = docker.from_env()
+# client = docker.from_env()
 
 def get_autoloaded_classes() -> Dict[str, Dict[str, GeneratedQuestionClassType]]:
     base_package = 'question_generation.algo.algo_subclasses'
@@ -239,44 +239,45 @@ async def generate_input_route(request: GenerateInputRequest, input_classes: Dic
         )
         result['context'] = {key: str(value) for key, value in result['context'].items()}
         result['cls_name'] = result['cls'].__name__
+        result['has_output'] = False
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@question_generation_router.post("/generate")
-async def generate_route(request: GenerateQuestionRequest):
-    try:
-        input_data = {
-            "request": request.model_dump(),
-        }
-        input_json = json.dumps(input_data)
-        result = subprocess.run(
-            [
-                "docker", "run", "--rm", "-i",
-                "sandbox_image"
-            ],
-            input=input_json,
-            capture_output=True,
-            text=True
-        )
-        json_start = result.stdout.rfind('{"result"')
-        if json_start != -1:
-            valid_json_str = result.stdout[json_start:]
-            output = json.loads(valid_json_str)
-            return output['result']
-        else:
-            return {"error": "No valid JSON found in the output"}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 # @question_generation_router.post("/generate")
-# async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes), input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)):
+# async def generate_route(request: GenerateQuestionRequest):
 #     try:
-#         return generate_question(request, autoloaded_classes, input_classes)
-#     except ValueError as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+#         input_data = {
+#             "request": request.model_dump(),
+#         }
+#         input_json = json.dumps(input_data)
+#         result = subprocess.run(
+#             [
+#                 "docker", "run", "--rm", "-i",
+#                 "sandbox_image"
+#             ],
+#             input=input_json,
+#             capture_output=True,
+#             text=True
+#         )
+#         json_start = result.stdout.rfind('{"result"')
+#         if json_start != -1:
+#             valid_json_str = result.stdout[json_start:]
+#             output = json.loads(valid_json_str)
+#             return output['result']
+#         else:
+#             return {"error": "No valid JSON found in the output"}
+
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
+
+@question_generation_router.post("/generate")
+async def generate_route(request: GenerateQuestionRequest, autoloaded_classes: Dict[str, Dict[str, GeneratedQuestionClassType]] = Depends(get_autoloaded_classes), input_classes: Dict[str, Dict[str, Type]] = Depends(get_input_classes)):
+    try:
+        return generate_question(request, autoloaded_classes, input_classes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

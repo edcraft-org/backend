@@ -46,6 +46,7 @@ class GenerateVariableRequest(BaseModel):
 class VariableResponse(BaseModel):
     context: Dict[str, Any]
     context_init: Dict[str, Any]
+    has_output: bool
     cls_name: Optional[str] = None
 
 class OutputResponse(BaseModel):
