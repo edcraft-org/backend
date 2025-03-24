@@ -28,6 +28,7 @@ def autoload_classes(base_path: str, base_package: str) -> Dict[str, Dict[str, A
 @handle_exceptions
 def traverse_directory(current_path: str, current_package: str, autoloaded_classes: Dict[str, Dict[str, Any]]):
     """Recursively traverse the directory structure and collect classes."""
+    EXCLUDED_CLASSES = {'AdversarialEnv', 'GraphEnv'}
     for item in Path(current_path).iterdir():
         if item.is_dir() and not item.name.startswith('__'):
             if item.name not in autoloaded_classes:
@@ -37,7 +38,7 @@ def traverse_directory(current_path: str, current_package: str, autoloaded_class
             module_name = f"{current_package}.{item.stem}"
             importlib.import_module(module_name)  # Dynamically import the module
             cls = get_class_from_module(module_name)
-            if item.stem not in autoloaded_classes and not inspect.isabstract(cls) and not getattr(cls, 'internal', False):
+            if item.stem not in autoloaded_classes and not inspect.isabstract(cls) and not getattr(cls, 'internal', False) and cls.__name__ not in EXCLUDED_CLASSES:
                 autoloaded_classes[item.stem] = cls
 
 @handle_exceptions

@@ -10,12 +10,19 @@ from utils.user__code_helper import load_input_class, load_user_class
 
 def get_init_arguments(cls: Type) -> List[Dict[str, Any]]:
     """Get the initialization arguments for a given class."""
-    init_signature = inspect.signature(cls.__init__)
     exposed_args = getattr(cls, '_exposed_args', [])
+
+    if hasattr(cls, '__new__') and cls.__new__ != object.__new__:
+        signature = inspect.signature(cls.__new__)
+    else:
+        signature = inspect.signature(cls.__init__)
+
     init_variables = [
         {"name": param_name, "type": format_type(str(param.annotation))}
-        for param_name, param in init_signature.parameters.items()
-        if param_name != 'self' and param_name != 'cls' and param.annotation != inspect._empty and param_name in exposed_args
+        for param_name, param in signature.parameters.items()
+        if param_name not in ('self', 'cls') and
+           param.annotation != inspect._empty and
+           param_name in exposed_args
     ]
     return init_variables
 

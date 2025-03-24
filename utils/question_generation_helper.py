@@ -95,7 +95,9 @@ def generate_variable(
         if arguments_init:
             for key, value in arguments_init.items():
                 var_type = next((v["type"] for v in algo_variables if v["name"] == key), None)
-                if var_type:
+                if var_type == bool:
+                    algo_generated_data[key] = value
+                elif var_type:
                     algo_generated_data[key] = var_type(**deserialize_init_args(value)) if isinstance(value, dict) else var_type(value)
                 else:
                     algo_generated_data[key] = value
