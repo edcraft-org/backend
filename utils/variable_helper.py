@@ -11,12 +11,10 @@ from utils.user__code_helper import load_input_class, load_user_class
 def get_init_arguments(cls: Type) -> List[Dict[str, Any]]:
     """Get the initialization arguments for a given class."""
     exposed_args = getattr(cls, '_exposed_args', [])
-
-    if hasattr(cls, '__new__') and cls.__new__ != object.__new__:
+    if hasattr(cls, '__new__') and cls.__new__ != object.__new__ and cls.__new__ != list.__new__:
         signature = inspect.signature(cls.__new__)
     else:
         signature = inspect.signature(cls.__init__)
-
     init_variables = [
         {"name": param_name, "type": format_type(str(param.annotation))}
         for param_name, param in signature.parameters.items()
@@ -29,9 +27,13 @@ def get_init_arguments(cls: Type) -> List[Dict[str, Any]]:
 def get_subclasses_info(cls: Type) -> List[Dict[str, Any]]:
     """Get the subclasses and their initialization arguments for a given class."""
     subclasses = cls.__subclasses__()
+    unique_subclasses = {}
+    for subclass in subclasses:
+        key = f"{subclass.__module__}.{subclass.__name__}"
+        unique_subclasses[key] = subclass
     subclasses_info = [
         {"name": subclass.__name__, "arguments": get_init_arguments(subclass)}
-        for subclass in subclasses
+        for subclass in unique_subclasses.values()
     ]
     return subclasses_info
 

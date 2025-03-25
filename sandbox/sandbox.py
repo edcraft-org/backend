@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 import json
-from typing import Dict
+from typing import Any, Dict
 from models.question_generation import GenerateQuestionRequest
 from utils.classes_helper import autoload_classes
 from utils.types_helper import GeneratedQuestionClassType
@@ -16,11 +16,19 @@ def get_autoloaded_classes() -> Dict[str, Dict[str, GeneratedQuestionClassType]]
     except Exception as e:
         return str(e)
 
+def get_input_classes() -> Dict[str, Dict[str, Any]]:
+    try:
+        base_package = 'question_generation.input.input_subclasses'
+        base_path = Path(__file__).resolve().parent.parent / 'question_generation' / 'input' / 'input_subclasses'
+        return autoload_classes(str(base_path), base_package)
+    except Exception as e:
+        return str(e)
 
 def execute_user_code(request: GenerateQuestionRequest):
     try:
         autoloaded_classes = get_autoloaded_classes()
-        result = generate_question(request, autoloaded_classes)
+        input_classes = get_input_classes()
+        result = generate_question(request, autoloaded_classes, input_classes)
         return result
     except Exception as e:
         return str(e)
