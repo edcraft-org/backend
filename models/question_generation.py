@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 class ContextRequest(BaseModel):
     selectedTopic: str
@@ -19,7 +19,7 @@ class QuestionDetails(BaseModel):
     number_of_options: int
     # question_type: str
 
-class SubQuestion(BaseModel):
+class SubQuestionContext(BaseModel):
     description: str
     queryable: str
     inputQueryable: str
@@ -30,7 +30,7 @@ class SubQuestion(BaseModel):
 class GenerateQuestionRequest(BaseModel):
     description: str
     context: ContextRequest
-    sub_questions: Optional[List[SubQuestion]] = Field(None, description="List of subquestions")
+    sub_questions: Optional[List[SubQuestionContext]] = Field(None, description="List of subquestions")
 
 class GenerateVariableRequest(BaseModel):
     topic: str
@@ -71,3 +71,11 @@ class GenerateInputRequest(BaseModel):
     element_type: Dict[str, str]
     input_init: Optional[Dict[str, Any]] = None
     user_env_code: Optional[str] = None
+
+class GeneratedContextItem(BaseModel):
+    id: str = Field(..., description="The unique identifier of the context item")
+    type: Literal['input', 'algo'] = Field(..., description="The type of the context")
+    context: Dict[str, Any] = Field(..., description="The context data")
+    context_init: Dict[str, Any] = Field(..., description="The context initialization data")
+    has_output: bool = Field(..., description="Whether the context has output")
+    name: Optional[str] = Field(None, description="Optional name for the context")

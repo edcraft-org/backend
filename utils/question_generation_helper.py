@@ -4,7 +4,7 @@ import inspect
 import random
 from typing import Any, Dict, List, Optional, Type
 
-from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestion
+from models.question_generation import ContextRequest, GenerateQuestionRequest, SubQuestionContext
 from question_generation.quantifiable.quantifiable_class import Quantifiable
 from question_generation.queryable.queryable_class import Queryable
 from utils.conversion_helper import deserialize_init_args
@@ -256,7 +256,7 @@ def generate_subquestion(
     autoloaded_classes: Dict[str, Dict[str, Any]],
     outer: Dict[str, Any],
     outerContext: ContextRequest,
-    subquestion: SubQuestion,
+    subquestion: SubQuestionContext,
     outerInput: Dict[str, Any],
     input_classes: Dict[str, Dict[str, Type]]
 ):
@@ -276,7 +276,7 @@ def generate_subquestion(
 
 def generate_subquestion_input_queryable(
     input_classes: Dict[str, Dict[str, Type]],
-    subquestion: SubQuestion,
+    subquestion: SubQuestionContext,
     outerInput: Dict[str, Any]
 ) -> Dict[str, Any]:
     try:
@@ -338,7 +338,7 @@ def generate_subquestion_queryable(
     autoloaded_classes: Dict[str, Dict[str, Any]],
     outer: Dict[str, Any],
     outerContext: ContextRequest,
-    subquestion: SubQuestion,
+    subquestion: SubQuestionContext,
 ) -> Dict[str, Any]:
     try:
         if subquestion.context.selectedSubtopic or subquestion.context.userAlgoCode:

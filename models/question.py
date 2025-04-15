@@ -1,10 +1,12 @@
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
+
+from models.question_generation import ContextRequest, GeneratedContextItem, SubQuestionContext
 
 class SubQuestion(BaseModel):
     description: str = Field(..., description="The description of the subquestion")
@@ -20,6 +22,8 @@ class Question(Document):
     description: str = Field(..., description="The outer description of the question")
     svg: Optional[Dict[str, str]] = Field(None, description="The SVG representations of the question")
     subquestions: Optional[List[SubQuestion]] = Field(None, description="List of subquestions")
+    generated_context: Optional[List[GeneratedContextItem]] = Field(None, description="The generated context items")
+    state: Optional[Dict[str, Any]] = Field(None, description="The question generation state")
 
     class Settings:
         name = "questions"
@@ -29,3 +33,5 @@ class QuestionCreate(BaseModel):
     description: str = Field(..., description="The outer description of the question")
     svg: Optional[Dict[str, str]] = Field(None, description="The SVG representations of the question")
     subquestions: Optional[List[SubQuestion]] = Field(None, description="List of subquestions")
+    generated_context: Optional[List[GeneratedContextItem]] = Field(None, description="The generated context items")
+    state: Optional[Dict[str, Any]] = Field(None, description="The question generation state")

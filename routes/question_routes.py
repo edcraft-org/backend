@@ -27,3 +27,16 @@ async def delete_question(question_id: str):
         raise HTTPException(status_code=404, detail="Question not found")
     await question.delete()
     return f"Question {question_id} deleted successfully"
+
+@question_router.put("/{question_id}", response_model=Question)
+async def update_question(question_id: str, updated_question: QuestionCreate):
+    """Update an existing question by ID."""
+    question = await Question.get(PydanticObjectId(question_id))
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    for field, value in updated_question.model_dump().items():
+        setattr(question, field, value)
+
+    await question.save()
+    return question
