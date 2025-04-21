@@ -81,6 +81,9 @@ def generate_variable(
         cls = load_user_class(userAlgoCode, userQueryableCode, userEnvCode)
     else:
         cls = get_subtopic_class(autoloaded_classes, topic, subtopic)
+    user_cls = None
+    if not userAlgoCode and userEnvCode:
+        user_cls = load_input_class(userEnvCode[0])
     cls_instance = cls()
     algo_variables = get_algo_variables(cls)
     for var in algo_variables:
@@ -98,6 +101,8 @@ def generate_variable(
                 if var_type == bool:
                     algo_generated_data[key] = value
                 elif var_type:
+                    if user_cls and issubclass(user_cls, var_type):
+                        var_type = user_cls
                     algo_generated_data[key] = var_type(**deserialize_init_args(value)) if isinstance(value, dict) else var_type(value)
                 else:
                     algo_generated_data[key] = value
@@ -287,7 +292,7 @@ def generate_subquestion_input_queryable(
                 input_classes,
                 subquestion.context.selectedQuantifiables,
                 subquestion.context.inputInit,
-                subquestion.context.userEnvCode
+                subquestion.context.userEnvCode[0] if (subquestion.context.userEnvCode and len(subquestion.context.userEnvCode) > 0) else None,
             )
             cls_instance = inner['cls_instance']
             cls = inner['cls']
